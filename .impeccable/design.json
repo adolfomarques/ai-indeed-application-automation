@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-11T20:04:00Z",
+  "title": "Design System: JobPilot AI",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Indigo Pulse", "canonical": "oklch(60% 0.2 260)", "tonalRamp": ["oklch(20% 0.1 260)", "oklch(30% 0.15 260)", "oklch(45% 0.18 260)", "oklch(60% 0.2 260)", "oklch(75% 0.15 260)", "oklch(85% 0.1 260)", "oklch(92% 0.05 260)", "oklch(97% 0.02 260)"] },
+      "neutral-bg": { "role": "neutral", "displayName": "Deep Obsidian", "canonical": "#0a0b14" },
+      "border-glass": { "role": "neutral", "displayName": "Glass Frost Border", "canonical": "rgba(255, 255, 255, 0.08)" }
+    },
+    "motion": [
+      { "name": "ease-liquid", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Standard easing for all fluid transitions." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main call-to-action with Indigo Pulse gradient.",
+      "html": "<button class=\"ds-btn-primary\">Run Pipeline</button>",
+      "css": ".ds-btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 10px 20px; border-radius: 10px; font-weight: 600; border: none; cursor: pointer; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); } .ds-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); filter: brightness(1.1); }"
+    },
+    {
+      "name": "Glass Card",
+      "kind": "card",
+      "description": "Standard container with frost effect.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\">Card Title</div><div class=\"ds-card-body\">Content goes here.</div></div>",
+      "css": ".ds-card { background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; backdrop-filter: blur(20px); overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); } .ds-card:hover { border-color: rgba(255, 255, 255, 0.15); transform: scale(1.005); } .ds-card-header { padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600; font-size: 14px; color: #f1f5f9; } .ds-card-body { padding: 20px; color: #94a3b8; font-size: 14px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Liquid Automata",
+    "overview": "JobPilot AI is a premium automation suite that blends technical precision with organic fluidity. The system prioritizes 'Kinetic Clarity'—where every transition and state change feels intentional, smooth, and liquid.",
+    "keyCharacteristics": [
+      "Digital Materiality: Multi-layered glass surfaces.",
+      "Micro-Fluidity: Subtle, exponential easing.",
+      "Information Elegance: High data density with strict hierarchy."
+    ],
+    "rules": [
+      { "name": "The Glass Scarcity Rule", "body": "Glass surfaces must be rare and purposeful.", "section": "colors" },
+      { "name": "The Semantic Weight Rule", "body": "Use font weight rather than color to create hierarchy.", "section": "typography" }
+    ],
+    "dos": [
+      "Do use OKLCH for color derivations.",
+      "Do use exponential easing for transitions.",
+      "Do tint neutrals toward the primary indigo hue."
+    ],
+    "donts": [
+      "Don't use border-left/right stripes as accents.",
+      "Don't use pure black or pure white.",
+      "Don't use emojis for primary navigation."
+    ]
+  }
+}

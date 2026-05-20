@@ -1,0 +1,12 @@
+- [ ] Install required dependencies (next-auth, Google provider, @vercel/kv)
+- [ ] Create `.env.local` with NEXTAUTH secrets, Google OAuth credentials, KV endpoint and token
+- [ ] Add `src/middleware.ts` to protect routes
+- [ ] Implement `src/lib/auth.ts` helper
+- [ ] Create `src/app/api/auth/[...nextauth]/route.ts` with NextAuth configuration (Google, JWT, KV persistence, user limit 5)
+- [ ] Build sign‑in UI page `src/app/auth/signin/page.tsx` (premium design)
+- [ ] Update protected APIs (`apply`, `cron`, etc.) to require session
+- [ ] Test locally (`npm run dev`), verify login flow and KV user count
+- [ ] Deploy to Vercel (`npm run build && npx vercel --prod --yes`)
+- [ ] Verify production URLs and KV storage
+- [ ] Document steps in `README.md` and update `DEPLOY_AND_BACKUP.md`
+- [ ] Write walkthrough summary
