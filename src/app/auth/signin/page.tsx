@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, useMemo } from "react";
 
+const easeOut = [0.16, 1, 0.3, 1] as const;
+
 function GoogleIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -31,7 +33,7 @@ function SignInContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const callbackError = searchParams.get("error");
   const urlError = useMemo(() => {
@@ -67,7 +69,7 @@ function SignInContent() {
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+           transition={{ duration: 0.6, ease: easeOut }}
           className="auth-card"
         >
           <div className="auth-brand">
