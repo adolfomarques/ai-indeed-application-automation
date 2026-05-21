@@ -148,17 +148,14 @@ export default function Home() {
     const uid = (session?.user as { id?: string } | undefined)?.id;
     if (!uid) return;
     try {
-      const res = await fetch("/api/user/schedules", {
+      await fetch("/api/user/schedules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(scheds),
       });
-      const data = await res.json();
-      if (data.schedules) {
-        setSchedules(data.schedules);
-        localStorage.setItem("jobpilot_schedules", JSON.stringify(data.schedules));
-      }
-    } catch {}
+    } catch (e) {
+      console.error("Failed to sync schedules:", e);
+    }
   }, [session]);
 
   const syncJobs = useCallback(async (jobsData: Job[]) => {
@@ -194,8 +191,16 @@ export default function Home() {
     try {
       const res = await fetch("/api/user/schedules");
       const serverSchedules = await res.json();
-      if (Array.isArray(serverSchedules) && serverSchedules.length > 0) {
-        setSchedules(serverSchedules);
+      if (Array.isArray(serverSchedules)) {
+        setSchedules((prev) => {
+          const merged = [...serverSchedules];
+          for (const local of prev) {
+            if (!merged.find((s: Schedule) => s.id === local.id)) {
+              merged.push(local);
+            }
+          }
+          return merged;
+        });
         localStorage.setItem("jobpilot_schedules", JSON.stringify(serverSchedules));
       }
     } catch {}
