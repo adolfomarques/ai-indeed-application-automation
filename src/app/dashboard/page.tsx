@@ -87,6 +87,7 @@ export default function Home() {
   const [page, setPage] = useState<Page>("dashboard");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { data: session } = useSession();
 
@@ -121,6 +122,9 @@ export default function Home() {
       })
       .catch(() => {});
   }, [session]);
+
+  const openSidebar = () => setSidebarOpen(true);
+  const closeSidebar = () => setSidebarOpen(false);
 
   const toggleSidebar = () => {
     const newState = !isSidebarCollapsed;
@@ -789,7 +793,7 @@ export default function Home() {
   return (
     <>
       {/* Sidebar */}
-      <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+      <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""} ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-brand">
           <div className="brand-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4.5c1.62-1.63 5-2.5 5-2.5"></path><path d="M12 15v5s3.03-.55 4.5-2c1.63-1.62 2.5-5 2.5-5"></path></svg>
@@ -806,7 +810,7 @@ export default function Home() {
             <button 
               key={item.id} 
               className={`nav-link ${page === item.id ? "active" : ""}`} 
-              onClick={() => setPage(item.id)}
+              onClick={() => { setPage(item.id); closeSidebar(); }}
             >
               <span className="icon">{Icons[item.id]}</span>
               <span className="nav-text">{item.label}</span>
@@ -830,10 +834,20 @@ export default function Home() {
         </div>
       </aside>
 
+      {/* Sidebar overlay (mobile) */}
+      <div className={`sidebar-overlay ${sidebarOpen ? "open" : ""}`} onClick={closeSidebar} />
+
       {/* Main Content */}
       <main className={`main-content ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
         <header className="page-header">
           <div className="header-left">
+            <button className="hamburger-btn" onClick={openSidebar} aria-label="Open menu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <h2 style={{ fontSize: 18, fontWeight: 800 }}>{getPageTitle()}</h2>
             <p style={{ opacity: 0.6 }}>{getPageDesc()}</p>
           </div>
@@ -853,6 +867,20 @@ export default function Home() {
 
         {renderPage()}
       </main>
+
+      {/* Bottom Nav (mobile) */}
+      <nav className="bottom-nav">
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.id}
+            className={page === item.id ? "active" : ""}
+            onClick={() => { setPage(item.id); closeSidebar(); }}
+          >
+            {Icons[item.id]}
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* Toasts */}
       <div className="toast-container">

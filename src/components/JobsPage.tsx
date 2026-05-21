@@ -283,7 +283,7 @@ export default function JobsPage({ jobs }: Props) {
                       className={`interactive ${expandedId === job.id ? 'active' : ''}`} 
                       onClick={() => setExpandedId(expandedId === job.id ? null : job.id)}
                     >
-                      <td>
+                      <td data-label="Job Role">
                         <div style={{ fontWeight: 600, color: '#fff' }}>{job.title || "Untitled"}</div>
                         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                           {job.isRemote ? "🏠 Remote" : "📍 Local"}
@@ -294,10 +294,10 @@ export default function JobsPage({ jobs }: Props) {
                           )}
                         </div>
                       </td>
-                      <td style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{job.company || "—"}</td>
-                      <td>{getSiteBadge(job.site)}</td>
-                      <td style={{ color: "var(--text-secondary)", fontSize: 13 }}>{job.location || "—"}</td>
-                      <td>
+                      <td data-label="Company" style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{job.company || "—"}</td>
+                      <td data-label="Board">{getSiteBadge(job.site)}</td>
+                      <td data-label="Location" style={{ color: "var(--text-secondary)", fontSize: 13 }}>{job.location || "—"}</td>
+                      <td data-label="Status">
                         {job.aiMatch === true ? (
                           <span className="badge badge-success">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -312,7 +312,7 @@ export default function JobsPage({ jobs }: Props) {
                           <span className="badge badge-neutral">Pending</span>
                         )}
                       </td>
-                      <td>
+                      <td data-label="Match">
                         {job.aiScore !== undefined ? (
                           <div style={{ 
                             display: 'inline-flex', 
@@ -330,7 +330,7 @@ export default function JobsPage({ jobs }: Props) {
                           <span style={{ color: 'var(--text-muted)' }}>—</span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td data-label="Action" style={{ textAlign: 'right' }}>
                         {job.jobUrl && (
                           <a
                             href={job.jobUrl}

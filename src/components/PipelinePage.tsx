@@ -210,7 +210,7 @@ export default function PipelinePage({
                   <p style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 280, margin: '0 auto' }}>Execute o pipeline para monitorar o comportamento dos agentes de IA em tempo real</p>
                 </div>
               ) : (
-                <div className="apple-terminal" ref={logRef} style={{ height: 500, overflowY: 'auto' }}>
+                <div className="apple-terminal" ref={logRef} style={{ height: 500, maxHeight: '60vh', overflowY: 'auto' }}>
                   {pipeline.logs.map((log, i) => (
                     <div key={i} className="log-line">
                       <span className="log-time" style={{ opacity: 0.4 }}>[{new Date(log.timestamp).toLocaleTimeString()}]</span>

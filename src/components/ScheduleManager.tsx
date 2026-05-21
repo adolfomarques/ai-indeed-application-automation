@@ -239,7 +239,7 @@ export default function ScheduleManager({ schedules, jobs, onAdd, onUpdate, onTo
             marginBottom: 20,
             animation: 'fadeIn 0.2s ease'
           }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div className="schedule-form-grid">
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Schedule Name</label>
                 <input
@@ -458,12 +458,10 @@ export default function ScheduleManager({ schedules, jobs, onAdd, onUpdate, onTo
             {schedules.map((schedule) => (
               <div key={schedule.id}>
                 <div
+                  className="schedule-row"
                   onMouseEnter={() => setHoveredId(schedule.id)}
                   onMouseLeave={() => setHoveredId(null)}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
                     padding: 18,
                     background: schedule.enabled 
                       ? 'linear-gradient(135deg, rgba(99,102,241,0.04), rgba(139,92,246,0.02))' 
@@ -575,7 +573,7 @@ export default function ScheduleManager({ schedules, jobs, onAdd, onUpdate, onTo
                     </div>
                   </div>
                   
-                  <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+                  <div className="schedule-row-actions" style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
                     <div style={{ 
                       textAlign: 'right', 
                       minWidth: 80,
