@@ -302,7 +302,7 @@ export default function ScheduleManager({ schedules, jobs, onAdd, onUpdate, onTo
                       className="input"
                       style={{ width: 72, height: 44 }}
                     >
-                      {[0, 15, 30, 45].map((m) => (
+                      {Array.from({ length: 60 }, (_, i) => i).map((m) => (
                         <option key={m} value={m}>{m.toString().padStart(2, '0')}</option>
                       ))}
                     </select>
