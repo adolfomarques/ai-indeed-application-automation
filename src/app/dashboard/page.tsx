@@ -144,6 +144,70 @@ export default function Home() {
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
 
+  const syncSchedules = useCallback(async (scheds: Schedule[]) => {
+    const uid = (session?.user as { id?: string } | undefined)?.id;
+    if (!uid) return;
+    try {
+      await fetch("/api/user/schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(scheds),
+      });
+    } catch {}
+  }, [session]);
+
+  const syncJobs = useCallback(async (jobsData: Job[]) => {
+    const uid = (session?.user as { id?: string } | undefined)?.id;
+    if (!uid) return;
+    try {
+      await fetch("/api/user/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jobsData),
+      });
+    } catch {}
+  }, [session]);
+
+  const syncScheduleRunJobs = useCallback(async (jobsData: Record<string, Job[]>) => {
+    const uid = (session?.user as { id?: string } | undefined)?.id;
+    if (!uid) return;
+    try {
+      const res = await fetch("/api/user/schedule-jobs");
+      const existing: Record<string, Job[]> = await res.json();
+      const merged = { ...existing, ...jobsData };
+      await fetch("/api/user/schedule-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(merged),
+      });
+    } catch {}
+  }, [session]);
+
+  const loadSchedulesFromServer = useCallback(async () => {
+    const uid = (session?.user as { id?: string } | undefined)?.id;
+    if (!uid) return;
+    try {
+      const res = await fetch("/api/user/schedules");
+      const serverSchedules = await res.json();
+      if (Array.isArray(serverSchedules) && serverSchedules.length > 0) {
+        setSchedules(serverSchedules);
+        localStorage.setItem("jobpilot_schedules", JSON.stringify(serverSchedules));
+      }
+    } catch {}
+  }, [session]);
+
+  const loadJobsFromServer = useCallback(async () => {
+    const uid = (session?.user as { id?: string } | undefined)?.id;
+    if (!uid) return;
+    try {
+      const res = await fetch("/api/user/jobs");
+      const serverJobs = await res.json();
+      if (Array.isArray(serverJobs) && serverJobs.length > 0) {
+        setJobs(serverJobs);
+      }
+    } catch {}
+  }, [session]);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedSchedules = localStorage.getItem("jobpilot_schedules");
@@ -158,10 +222,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && schedules.length > 0) {
+    if (typeof window !== "undefined") {
       localStorage.setItem("jobpilot_schedules", JSON.stringify(schedules));
     }
-  }, [schedules]);
+    syncSchedules(schedules);
+  }, [schedules, syncSchedules]);
 
   const [toasts, setToasts] = useState<{ id: number; msg: string; type: string }[]>([]);
 
@@ -208,7 +273,9 @@ export default function Home() {
       if (schedule.runScrape) {
         runScrape().then((scrapedJobs) => {
           const jobCount = scrapedJobs.length;
-          localStorage.setItem(getScheduleRunJobsKey(id, runId), JSON.stringify(scrapedJobs));
+          const runKey = getScheduleRunJobsKey(id, runId);
+          localStorage.setItem(runKey, JSON.stringify(scrapedJobs));
+          syncScheduleRunJobs({ [runKey]: scrapedJobs });
           
           setSchedules(prev => prev.map(sched =>
             sched.id === id
@@ -219,7 +286,8 @@ export default function Home() {
           if (schedule.runFilter && scrapedJobs.length > 0) {
             runFilter(scrapedJobs).then((filteredJobs) => {
               const matchedCount = filteredJobs.filter(j => j.aiMatch).length;
-              localStorage.setItem(getScheduleRunJobsKey(id, runId), JSON.stringify(filteredJobs));
+              localStorage.setItem(runKey, JSON.stringify(filteredJobs));
+              syncScheduleRunJobs({ [runKey]: filteredJobs });
               setSchedules(prev => prev.map(sched =>
                 sched.id === id
                   ? { ...sched, runs: (sched.runs || []).map(r => r.id === runId ? { ...r, jobCount, matchedCount, status: 'completed' as const } : r) }
@@ -240,27 +308,30 @@ export default function Home() {
     }
   };
 
-  const exportScheduleJobs = useCallback((id: string) => {
+  const getRunJobs = useCallback(async (scheduleId: string, runId: string): Promise<Job[]> => {
+    const key = getScheduleRunJobsKey(scheduleId, runId);
+    const local = localStorage.getItem(key);
+    if (local) {
+      try { return JSON.parse(local); } catch {}
+    }
+    try {
+      const res = await fetch("/api/user/schedule-jobs");
+      const all = await res.json() as Record<string, Job[]>;
+      if (all[key]) return all[key];
+    } catch {}
+    return [];
+  }, []);
+
+  const exportScheduleJobs = useCallback(async (id: string) => {
     const schedule = schedules.find((s) => s.id === id);
     
     const latestRun = schedule?.runs?.[0];
     if (latestRun) {
       const runId = latestRun.id;
-      const scheduleId = id;
       const run = latestRun;
       
-      const savedJobsKey = getScheduleRunJobsKey(scheduleId, runId);
-      const savedJobs = localStorage.getItem(savedJobsKey);
-      
-      let jobsToExport: Job[] = [];
-      if (savedJobs) {
-        try {
-          const parsed = JSON.parse(savedJobs);
-          jobsToExport = parsed.filter((j: Job) => j.aiMatch === true);
-        } catch (e) {
-          console.error("Failed to parse saved jobs", e);
-        }
-      }
+      let runJobs = await getRunJobs(id, runId);
+      let jobsToExport = runJobs.filter((j: Job) => j.aiMatch === true);
       
       if (jobsToExport.length === 0) {
         jobsToExport = jobs.filter(j => j.aiMatch === true);
@@ -280,23 +351,7 @@ export default function Home() {
       return;
     }
 
-    const savedJobsKey = `jobpilot_schedule_jobs_${id}`;
-    const savedJobs = localStorage.getItem(savedJobsKey);
-    
-    let jobsToExport: Job[] = [];
-    if (savedJobs) {
-      try {
-        const parsed = JSON.parse(savedJobs);
-        jobsToExport = parsed.filter((j: Job) => j.aiMatch === true);
-      } catch (e) {
-        console.error("Failed to parse saved jobs", e);
-      }
-    }
-    
-    if (jobsToExport.length === 0) {
-      jobsToExport = jobs.filter(j => j.aiMatch === true);
-    }
-    
+    let jobsToExport: Job[] = jobs.filter(j => j.aiMatch === true);
     jobsToExport.sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0));
     
     if (jobsToExport.length === 0) {
@@ -311,24 +366,14 @@ export default function Home() {
     if (schedule) {
       setSchedules(prev => prev.map(s => s.id === id ? { ...s, lastExport: new Date().toISOString() } : s));
     }
-  }, [schedules, jobs, addToast]);
+  }, [schedules, jobs, addToast, getRunJobs]);
 
-  const exportScheduleRun = useCallback((scheduleId: string, runId: string) => {
+  const exportScheduleRun = useCallback(async (scheduleId: string, runId: string) => {
     const schedule = schedules.find((s) => s.id === scheduleId);
     const run = schedule?.runs?.find(r => r.id === runId);
     
-    const savedJobsKey = getScheduleRunJobsKey(scheduleId, runId);
-    const savedJobs = localStorage.getItem(savedJobsKey);
-    
-    let jobsToExport: Job[] = [];
-    if (savedJobs) {
-      try {
-        const parsed = JSON.parse(savedJobs);
-        jobsToExport = parsed.filter((j: Job) => j.aiMatch === true);
-      } catch (e) {
-        console.error("Failed to parse saved jobs", e);
-      }
-    }
+    let runJobs = await getRunJobs(scheduleId, runId);
+    let jobsToExport = runJobs.filter((j: Job) => j.aiMatch === true);
     
     if (jobsToExport.length === 0) {
       jobsToExport = jobs.filter(j => j.aiMatch === true);
@@ -345,7 +390,7 @@ export default function Home() {
     const filename = `jobpilot-${schedule?.name.toLowerCase().replace(/\s+/g, '-') || 'schedule'}-${dateStr}.csv`;
     downloadCSV(jobsToCSV(jobsToExport), filename);
     addToast(`Exported ${jobsToExport.length} matched jobs from ${dateStr}`, "success");
-  }, [schedules, jobs, addToast]);
+  }, [schedules, jobs, addToast, getRunJobs]);
 
   const addLog = useCallback((message: string, level: LogEntry["level"] = "info") => {
     setPipeline((prev) => ({
@@ -372,6 +417,13 @@ export default function Home() {
     },
     [addToast, session]
   );
+
+  useEffect(() => {
+    const uid = (session?.user as { id?: string } | undefined)?.id;
+    if (typeof window === "undefined" || !uid) return;
+    loadSchedulesFromServer();
+    loadJobsFromServer();
+  }, [session, loadSchedulesFromServer, loadJobsFromServer]);
 
   // ─── Pipeline actions ───
   const runScrape = useCallback(async () => {
@@ -402,8 +454,10 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Scrape failed");
-      setJobs(data.jobs || []);
-      addLog(`Found ${data.jobs?.length || 0} jobs`, "success");
+      const scrapedJobs = data.jobs || [];
+      setJobs(scrapedJobs);
+      syncJobs(scrapedJobs);
+      addLog(`Found ${scrapedJobs.length} jobs`, "success");
       setPipeline((p) => ({ ...p, progress: 33 }));
       addToast(`Scraped ${data.jobs?.length || 0} jobs`, "success");
       setPipeline((p) => ({ ...p, status: "idle", progress: 33, currentStep: 2, stepProgress: { ...p.stepProgress, scrape: 100 } }));
@@ -415,7 +469,7 @@ export default function Home() {
       addToast(`Scrape failed: ${msg}`, "error");
       return [];
     }
-  }, [settings, addLog, addToast, isLoaded]);
+  }, [settings, addLog, addToast, isLoaded, syncJobs]);
 
   const runFilter = useCallback(
     async (jobsToFilter: Job[]) => {
@@ -524,6 +578,7 @@ export default function Home() {
             });
             
             setJobs([...allUpdatedJobs]);
+            syncJobs([...allUpdatedJobs]);
             
             // Update progress
             const progressPercent = Math.round(((i + batch.length) / jobsToFilter.length) * 100);
@@ -564,7 +619,7 @@ export default function Home() {
       addToast(`${matched} jobs matched your preferences`, "success");
       return allUpdatedJobs;
     },
-    [settings, addLog, addToast, saveSettings]
+    [settings, addLog, addToast, saveSettings, syncJobs]
   );
 
   const runApply = useCallback(
@@ -626,8 +681,10 @@ export default function Home() {
                 if (s.runScrape) {
                   runScrape().then((scrapedJobs) => {
                     const jobCount = scrapedJobs.length;
+                    const runKey = getScheduleRunJobsKey(scheduleId, runId);
                     
-                    localStorage.setItem(getScheduleRunJobsKey(scheduleId, runId), JSON.stringify(scrapedJobs));
+                    localStorage.setItem(runKey, JSON.stringify(scrapedJobs));
+                    syncScheduleRunJobs({ [runKey]: scrapedJobs });
                     
                     setSchedules(prev => prev.map(sched => 
                       sched.id === scheduleId 
@@ -646,7 +703,8 @@ export default function Home() {
                     if (s.runFilter && scrapedJobs.length > 0) {
                       runFilter(scrapedJobs).then((filteredJobs) => {
                         const matchedCount = filteredJobs.filter(j => j.aiMatch).length;
-                        localStorage.setItem(getScheduleRunJobsKey(scheduleId, runId), JSON.stringify(filteredJobs));
+                        localStorage.setItem(runKey, JSON.stringify(filteredJobs));
+                        syncScheduleRunJobs({ [runKey]: filteredJobs });
                         setSchedules(prev => prev.map(sched =>
                           sched.id === scheduleId
                             ? { ...sched, runs: (sched.runs || []).map(r => r.id === runId ? { ...r, jobCount, matchedCount, status: 'completed' as const } : r) }
@@ -677,7 +735,7 @@ export default function Home() {
       });
     }, 30000);
     return () => clearInterval(checkSchedules);
-  }, [runScrape, runFilter, addLog]);
+  }, [runScrape, runFilter, addLog, syncScheduleRunJobs]);
 
   const runFullPipeline = useCallback(async () => {
     const scrapedJobs = await runScrape();
