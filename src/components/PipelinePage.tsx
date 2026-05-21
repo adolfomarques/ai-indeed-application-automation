@@ -43,13 +43,13 @@ export default function PipelinePage({
 
   return (
     <>
-      <div className="page-header" style={{ padding: '16px 32px' }}>
+      <div className="page-header">
         <div className="header-left">
           <h2>Pipeline</h2>
           <p>Run the full automation workflow or individual steps</p>
         </div>
-        <div className="header-right">
-          <button className="btn btn-primary" onClick={onRunAll} disabled={isRunning} style={{ height: 36 }}>
+        <div className="header-right" style={{ gap: 8 }}>
+          <button className="btn btn-primary" onClick={onRunAll} disabled={isRunning} style={{ height: 36, whiteSpace: 'nowrap' }}>
             {isRunning ? (
               <>
                 <span className="spinner" /> Running...
@@ -61,7 +61,7 @@ export default function PipelinePage({
               </span>
             )}
           </button>
-          <button className="btn btn-secondary" onClick={onClearLogs} style={{ height: 36 }}>
+          <button className="btn btn-secondary" onClick={onClearLogs} style={{ height: 36, whiteSpace: 'nowrap' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             Clear
           </button>
@@ -74,11 +74,11 @@ export default function PipelinePage({
           <div className="apple-card">
             <div className="card-header">
               <h3 style={{ fontSize: 15, fontWeight: 700 }}>Automation Sequence</h3>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div className="pipeline-card-actions" style={{ display: "flex", gap: 6 }}>
                 <button className="btn btn-sm btn-secondary" onClick={onClearLogs}>
                   Clear Log
                 </button>
-                <button className="btn btn-sm btn-primary" onClick={onRunAll} disabled={isRunning}>
+                <button className="btn btn-sm btn-primary" onClick={onRunAll} disabled={isRunning} style={{ whiteSpace: 'nowrap' }}>
                   {isRunning ? (
                     <>
                       <span className="spinner" /> Active
@@ -225,7 +225,7 @@ export default function PipelinePage({
 
         {/* Error banner */}
         {pipeline.error && (
-          <div className="apple-card" style={{ marginTop: 24, borderLeft: '4px solid var(--danger)' }}>
+          <div className="apple-card" style={{ marginTop: 24, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)' }}>
             <div className="card-body" style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <span style={{ fontSize: 24 }}>⚠️</span>
               <div>

@@ -121,7 +121,7 @@ export default function Dashboard({ jobs, pipeline, onNavigate, onRunPipeline }:
 
         {/* Quota & Warning */}
         {pipeline.quotaExceeded && (
-          <div className="apple-card animate-in" style={{ borderLeft: "4px solid var(--danger)", background: "rgba(239, 68, 68, 0.05)", marginBottom: 24 }}>
+          <div className="apple-card animate-in" style={{ background: "rgba(239, 68, 68, 0.06)", border: '1px solid rgba(239,68,68,0.25)', marginBottom: 24 }}>
             <div className="card-body" style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ fontSize: 24 }}>⚠️</div>
               <div>
@@ -245,7 +245,7 @@ export default function Dashboard({ jobs, pipeline, onNavigate, onRunPipeline }:
                   }} />
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div className="step-indicators">
                 {[
                   { step: "Scrape", icon: "🔍", key: 1 },
                   { step: "Filter", icon: "🤖", key: 2 },

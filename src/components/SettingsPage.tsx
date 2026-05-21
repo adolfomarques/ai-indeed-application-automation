@@ -463,7 +463,7 @@ export default function SettingsPage({ settings, onSave }: Props) {
             </div>
           </div>
 
-          <div style={{ borderTop: '1px solid var(--border-glass)', padding: '20px 24px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, background: 'rgba(0,0,0,0.2)' }}>
+          <div className="profile-metrics" style={{ borderTop: '1px solid var(--border-glass)', padding: '20px 24px', gap: 20, background: 'rgba(0,0,0,0.2)' }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>Skill Matching</span>

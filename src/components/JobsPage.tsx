@@ -132,7 +132,7 @@ export default function JobsPage({ jobs }: Props) {
               </svg>
             </div>
             <div>
-              <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.7) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Jobs</h2>
+              <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', color: '#fff' }}>Jobs</h2>
               <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                 <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{jobs.length}</span> scraped · 
                 <span style={{ color: 'var(--success)', fontWeight: 600 }}> {jobs.filter((j) => j.aiMatch === true).length}</span> matched
@@ -211,8 +211,8 @@ export default function JobsPage({ jobs }: Props) {
         )}
 
         {/* Toolbar */}
-        <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: 400 }}>
+        <div className="jobs-toolbar" style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="jobs-search-wrap" style={{ position: 'relative', flex: 1, maxWidth: 400 }}>
             <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             </span>
@@ -348,40 +348,35 @@ export default function JobsPage({ jobs }: Props) {
                     {expandedId === job.id && (
                       <tr key={`${job.id}-detail`}>
                         <td colSpan={7} style={{ padding: "0", background: "rgba(0,0,0,0.5)" }}>
-                          <div style={{ 
+                          <div className="job-detail-expanded" style={{ 
                             padding: "28px", 
-                            borderLeft: `4px solid ${job.aiMatch ? 'var(--success)' : 'var(--danger)'}`,
-                            background: 'linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.3))',
+                            background: job.aiMatch 
+                              ? 'linear-gradient(135deg, rgba(16,185,129,0.04), rgba(0,0,0,0.4))' 
+                              : 'linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.3))',
                           }}>
                             {/* Header with job info */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                              <div style={{ flex: 1 }}>
+                            <div className="job-detail-header" style={{ marginBottom: 24 }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
                                 <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 8, letterSpacing: '-0.01em' }}>
                                   {job.title || "Untitled Position"}
                                 </h3>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent-secondary)' }}>{job.company || "Company not specified"}</span>
-                                  <span style={{ color: 'var(--border-glass)' }}>•</span>
-                                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{job.location || "Location not specified"}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13 }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--accent-secondary)' }}>{job.company || "Company not specified"}</span>
+                                  <span className="detail-dot">•</span>
+                                  <span style={{ color: 'var(--text-secondary)' }}>{job.location || "Location not specified"}</span>
                                   {job.isRemote && (
                                     <>
-                                      <span style={{ color: 'var(--border-glass)' }}>•</span>
-                                      <span style={{ 
-                                        fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, 
-                                        background: 'rgba(16,185,129,0.1)', color: 'var(--success)', 
-                                        border: '1px solid rgba(16,185,129,0.2)'
-                                      }}>
-                                        🌐 REMOTE
-                                      </span>
+                                      <span className="detail-dot">•</span>
+                                      <span className="remote-badge">REMOTE</span>
                                     </>
                                   )}
                                 </div>
                               </div>
                               
                               {/* Action buttons container */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div className="job-detail-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                                 {/* AI Score Badge */}
-                                <div style={{ 
+                                <div className="score-badge" style={{ 
                                   display: 'flex', alignItems: 'center', gap: 10,
                                   background: job.aiScore && job.aiScore >= 8 
                                     ? 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.1))' 
@@ -420,6 +415,7 @@ export default function JobsPage({ jobs }: Props) {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={(e) => e.stopPropagation()}
+                                    className="view-job-btn"
                                     style={{
                                       display: 'inline-flex', alignItems: 'center', gap: 8,
                                       padding: '10px 20px', borderRadius: 12,
