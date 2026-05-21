@@ -257,15 +257,10 @@ export default function Dashboard({ jobs, pipeline, onNavigate, onRunPipeline }:
                   return (
                     <div
                       key={item.step}
+                      className="step-indicator-item"
                       style={{
-                        flex: 1,
-                        minWidth: 80,
-                        padding: '12px 16px',
-                        borderRadius: 12,
                         background: isCompleted ? 'rgba(16,185,129,0.1)' : isActive ? 'var(--accent-glow)' : 'rgba(255,255,255,0.02)',
                         border: `1px solid ${isCompleted ? 'rgba(16,185,129,0.3)' : isActive ? 'var(--accent-primary)' : 'var(--border-glass)'}`,
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        transition: 'all 0.3s ease'
                       }}
                     >
                       <span style={{ fontSize: 16 }}>{item.icon}</span>

@@ -574,9 +574,7 @@ export default function ScheduleManager({ schedules, jobs, onAdd, onUpdate, onTo
                   </div>
                   
                   <div className="schedule-row-actions" style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
-                    <div style={{ 
-                      textAlign: 'right', 
-                      minWidth: 80,
+                    <div className="schedule-status-box" style={{ 
                       padding: '8px 12px',
                       borderRadius: 8,
                       background: schedule.enabled 
@@ -595,7 +593,7 @@ export default function ScheduleManager({ schedules, jobs, onAdd, onUpdate, onTo
                       </div>
                     </div>
                     
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div className="schedule-btn-group">
                       <button
                         className="btn btn-sm"
                         onClick={() => onRunNow(schedule.id)}

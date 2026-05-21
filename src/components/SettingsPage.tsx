@@ -99,13 +99,13 @@ export default function SettingsPage({ settings, onSave }: Props) {
   return (
     <div className="page-body">
       <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '0 0 24px 0', borderBottom: '1px solid var(--border-glass)', marginBottom: 8 }}>
+        <div className="subpage-header" style={{ marginBottom: 24, padding: 0, background: 'none', borderBottom: '1px solid var(--border-glass)', paddingBottom: 24, backdropFilter: 'none' }}>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 8px rgba(99,102,241,0.5)' }}></span>
               System Configuration
             </p>
-            <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', background: 'linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.7) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>General Settings</h1>
+            <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', background: 'linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.7) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>General Settings</h1>
           </div>
           <button className="btn btn-primary" onClick={handleSave} style={{ height: 44, padding: '0 28px', borderRadius: 14, fontWeight: 600, background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 4px 16px rgba(99,102,241,0.3)' }}>
             <span style={{ marginRight: 8 }}>✓</span> Apply Changes

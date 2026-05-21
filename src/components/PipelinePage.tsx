@@ -43,7 +43,7 @@ export default function PipelinePage({
 
   return (
     <>
-      <div className="page-header">
+      <div className="subpage-header">
         <div className="header-left">
           <h2>Pipeline</h2>
           <p>Run the full automation workflow or individual steps</p>

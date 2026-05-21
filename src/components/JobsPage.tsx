@@ -117,7 +117,7 @@ export default function JobsPage({ jobs }: Props) {
 
   return (
     <>
-      <div className="page-header">
+      <div className="subpage-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ 
@@ -236,7 +236,7 @@ export default function JobsPage({ jobs }: Props) {
               </button>
             ))}
           </div>
-          <div className="badge badge-neutral" style={{ marginLeft: "auto" }}>
+          <div className="jobs-results-badge">
             {filtered.length} <span style={{ opacity: 0.5, marginLeft: 4 }}>results</span>
           </div>
         </div>
@@ -346,8 +346,8 @@ export default function JobsPage({ jobs }: Props) {
                       </td>
                     </tr>
                     {expandedId === job.id && (
-                      <tr key={`${job.id}-detail`}>
-                        <td colSpan={7} style={{ padding: "0", background: "rgba(0,0,0,0.5)" }}>
+                      <tr key={`${job.id}-detail`} className="detail-row">
+                        <td colSpan={7} className="detail-cell" style={{ padding: "0", background: "rgba(0,0,0,0.5)" }}>
                           <div className="job-detail-expanded" style={{ 
                             padding: "28px", 
                             background: job.aiMatch 

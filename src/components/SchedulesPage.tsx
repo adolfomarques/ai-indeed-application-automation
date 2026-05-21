@@ -20,7 +20,7 @@ export default function SchedulesPage({ schedules, jobs, onAdd, onUpdate, onTogg
 
   return (
     <>
-      <div className="page-header">
+      <div className="subpage-header">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <h2>Schedules</h2>
