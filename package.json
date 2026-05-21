@@ -13,6 +13,7 @@
   "dependencies": {
     "@google/genai": "^1.37.0",
     "@google/generative-ai": "^0.24.1",
+    "@upstash/qstash": "^2.11.0",
     "@vercel/kv": "^3.0.0",
     "browser-use-sdk": "^2.0.13",
     "dotenv": "^17.2.3",

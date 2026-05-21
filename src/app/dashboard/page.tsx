@@ -148,11 +148,16 @@ export default function Home() {
     const uid = (session?.user as { id?: string } | undefined)?.id;
     if (!uid) return;
     try {
-      await fetch("/api/user/schedules", {
+      const res = await fetch("/api/user/schedules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(scheds),
       });
+      const data = await res.json();
+      if (data.schedules) {
+        setSchedules(data.schedules);
+        localStorage.setItem("jobpilot_schedules", JSON.stringify(data.schedules));
+      }
     } catch {}
   }, [session]);
 

@@ -91,6 +91,7 @@ export interface Schedule {
   runScrape: boolean;
   runFilter: boolean;
   runs?: ScheduleRun[];
+  qstashMessageId?: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
