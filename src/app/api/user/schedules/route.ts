@@ -27,9 +27,8 @@ export async function POST(request: Request) {
   }
   try {
     const incoming = (await request.json()) as Schedule[];
-
-    // Cancel old QStash messages for schedules that changed
     const existing = (await getUserSchedules(userId)) as Schedule[] | null;
+
     if (Array.isArray(existing)) {
       for (const oldSched of existing) {
         const updated = incoming.find((s) => s.id === oldSched.id);
@@ -38,28 +37,42 @@ export async function POST(request: Request) {
         const nextRunChanged = updated && updated.nextRun !== oldSched.nextRun;
 
         if ((wasRemoved || wasDisabled || nextRunChanged) && oldSched.qstashMessageId) {
-          await cancelScheduleRun(oldSched.qstashMessageId).catch(() => {});
+          console.log(`[Schedules] Cancelling old QStash message for ${oldSched.id}`);
+          await cancelScheduleRun(oldSched.qstashMessageId);
         }
       }
     }
 
-    // Schedule QStash messages for enabled schedules with a future nextRun
     const qstashToken = process.env.QSTASH_TOKEN;
     for (const sched of incoming) {
-      if (sched.enabled && sched.nextRun && qstashToken) {
-        const messageId = await scheduleScheduleRun(userId, sched.id, sched.nextRun);
-        if (messageId) {
-          sched.qstashMessageId = messageId;
-        }
-      } else if (!sched.enabled) {
+      if (!sched.enabled || !sched.nextRun) {
         sched.qstashMessageId = undefined;
+        continue;
+      }
+
+      if (!qstashToken) continue;
+
+      const existingSched = existing?.find((s) => s.id === sched.id);
+      const alreadyScheduled = existingSched?.qstashMessageId
+        && existingSched.nextRun === sched.nextRun
+        && existingSched.enabled;
+
+      if (alreadyScheduled) {
+        console.log(`[Schedules] Schedule ${sched.id} already has active message, skipping`);
+        sched.qstashMessageId = existingSched!.qstashMessageId;
+        continue;
+      }
+
+      const messageId = await scheduleScheduleRun(userId, sched.id, sched.nextRun);
+      if (messageId) {
+        sched.qstashMessageId = messageId;
       }
     }
 
     await setUserSchedules(userId, incoming);
     return NextResponse.json({ success: true, schedules: incoming });
   } catch (e) {
-    console.error("Failed to save schedules:", e);
+    console.error("[Schedules] Failed to save schedules:", e);
     return NextResponse.json({ error: "Failed to save schedules" }, { status: 500 });
   }
 }

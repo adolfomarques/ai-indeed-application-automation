@@ -35,6 +35,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (scheduleId === "__test__") {
+      console.log(`[QStash] Test message received for user ${userId}`);
+      return NextResponse.json({ success: true, message: "QStash test OK" });
+    }
+
     const schedules = (await getUserSchedules(userId)) as Schedule[] | null;
     if (!Array.isArray(schedules)) {
       return NextResponse.json({ error: "No schedules found for user" }, { status: 404 });
