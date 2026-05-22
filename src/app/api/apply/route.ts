@@ -31,7 +31,7 @@ async function getUserResume(): Promise<{ base64?: string; fileName?: string; te
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { jobs, geminiApiKey, groqApiKey, userPreferences } = body;
+    const { jobs, geminiApiKey, groqApiKey, userPreferences, browserUseApiKey, browserProfileId } = body;
 
     if (!jobs || !Array.isArray(jobs) || jobs.length === 0) {
       return NextResponse.json({ error: "No jobs provided" }, { status: 400 });
@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
       if (geminiApiKey) process.env.GEMINI_API_KEY = geminiApiKey;
       if (groqApiKey) process.env.GROQ_API_KEY = groqApiKey;
       if (userPreferences) process.env.USER_PREFERENCES = userPreferences;
+      if (browserUseApiKey) process.env.BROWSER_USE_API_KEY = browserUseApiKey;
+      if (browserProfileId) process.env.BROWSER_PROFILE_ID = browserProfileId;
 
       // Trigger cloud automation without waiting (keeps execution time < 1s)
       const results = await applyToJobs(matchedJobs, false, resume ?? undefined);

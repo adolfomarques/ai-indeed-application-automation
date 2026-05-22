@@ -651,6 +651,7 @@ export default function Home() {
             geminiApiKey: settings.geminiApiKey,
             groqApiKey: settings.groqApiKey,
             userPreferences: settings.userPreferences,
+            browserUseApiKey: settings.browserUseApiKey,
             browserProfileId: settings.browserProfileId,
           }),
         });
