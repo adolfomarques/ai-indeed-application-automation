@@ -55,11 +55,10 @@ export async function POST(request: NextRequest) {
       if (geminiApiKey) process.env.GEMINI_API_KEY = geminiApiKey;
       if (groqApiKey) process.env.GROQ_API_KEY = groqApiKey;
       if (userPreferences) process.env.USER_PREFERENCES = userPreferences;
-      if (browserUseApiKey) process.env.BROWSER_USE_API_KEY = browserUseApiKey;
-      if (browserProfileId) process.env.BROWSER_PROFILE_ID = browserProfileId;
 
       // Trigger cloud automation without waiting (keeps execution time < 1s)
-      const results = await applyToJobs(matchedJobs, false, resume ?? undefined);
+      // Pass keys directly as parameters (more reliable than process.env in serverless)
+      const results = await applyToJobs(matchedJobs, false, resume ?? undefined, browserUseApiKey, browserProfileId);
 
       return NextResponse.json({
         success: true,

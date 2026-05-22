@@ -52,12 +52,11 @@ async function uploadResumeToSession(client: BrowserUseClient, sessionId: string
     }
 }
 
-async function applyToJobs(jobs: any[], waitForCompletion = false, resume?: ResumeData) {
+async function applyToJobs(jobs: any[], waitForCompletion = false, resume?: ResumeData, overrideApiKey?: string, overrideProfileId?: string) {
     console.log(`\n🚀 Starting job application process for ${jobs.length} job(s)...\n`);
 
-    // Initialize client here to ensure environment variables are loaded
-    const BROWSER_USE_API_KEY = process.env.BROWSER_USE_API_KEY;
-    const BROWSER_PROFILE_ID = process.env.BROWSER_PROFILE_ID;
+    const BROWSER_USE_API_KEY = overrideApiKey || process.env.BROWSER_USE_API_KEY;
+    const BROWSER_PROFILE_ID = overrideProfileId || process.env.BROWSER_PROFILE_ID;
 
     if (!BROWSER_USE_API_KEY) {
         throw new Error('BROWSER_USE_API_KEY environment variable is not set');
