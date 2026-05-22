@@ -1,9 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import path from "path";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { kv } from "@vercel/kv";
 import applyToJobs from "../../../api/cron/apply";
 
 export const maxDuration = 300;
+
+async function getUserResume(): Promise<{ base64?: string; fileName?: string; text?: string } | null> {
+  try {
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) return null;
+
+    const resumeData = await kv.get(`user_resume:${userId}`) as { base64?: string; fileName?: string; sizeBytes?: number } | null;
+    if (!resumeData?.base64) return null;
+
+    const userSettings = await kv.get(`user_settings:${userId}`) as { myResume?: string } | null;
+    return {
+      base64: resumeData.base64,
+      fileName: resumeData.fileName,
+      text: userSettings?.myResume || "",
+    };
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +43,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No matched jobs to apply to" }, { status: 400 });
     }
 
+    // Load user's uploaded resume for cloud mode
+    const resume = await getUserResume();
+
     // CLOUD MODE DETECTION
     // If running on Vercel or forced via APPLY_MODE=cloud, use the Browser-Use cloud SDK
     if (process.env.APPLY_MODE === "cloud" || process.env.VERCEL === "1") {
@@ -31,7 +57,7 @@ export async function POST(request: NextRequest) {
       if (userPreferences) process.env.USER_PREFERENCES = userPreferences;
 
       // Trigger cloud automation without waiting (keeps execution time < 1s)
-      const results = await applyToJobs(matchedJobs, false);
+      const results = await applyToJobs(matchedJobs, false, resume ?? undefined);
 
       return NextResponse.json({
         success: true,

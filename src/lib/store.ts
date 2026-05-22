@@ -43,6 +43,7 @@ export interface Settings {
   batchSize: number;
   aiUsageCount: number;
   myResume: string;
+  resumeFileName: string;
 }
 
 export interface PipelineState {
@@ -56,8 +57,10 @@ export interface PipelineState {
     filter: number;
     apply: number;
   };
-  aiUsageInSession: number; // Session specific
+  aiUsageInSession: number;
   quotaExceeded: boolean;
+  liveUrl?: string;
+  viewUrl?: string;
 }
 
 export interface LogEntry {
@@ -114,6 +117,7 @@ export const DEFAULT_SETTINGS: Settings = {
   batchSize: 5,
   aiUsageCount: 0,
   myResume: '',
+  resumeFileName: '',
 };
 
 export const AVAILABLE_COUNTRIES = [

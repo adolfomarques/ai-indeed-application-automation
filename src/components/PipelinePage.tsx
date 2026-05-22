@@ -223,6 +223,31 @@ export default function PipelinePage({
           </div>
         </div>
 
+        {/* Live stream */}
+        {pipeline.liveUrl && (
+          <div className="apple-card" style={{ marginTop: 24, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(99,102,241,0.25)', overflow: 'hidden' }}>
+            <div className="card-header" style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite', boxShadow: '0 0 8px rgba(239,68,68,0.6)' }} />
+              <span style={{ fontSize: 13, fontWeight: 700 }}>Live Browser Session</span>
+              {pipeline.viewUrl && (
+                <a href={pipeline.viewUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--accent-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Open in new tab
+                </a>
+              )}
+            </div>
+            <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', background: '#000' }}>
+              <iframe
+                src={pipeline.liveUrl}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                allow="clipboard-read; clipboard-write"
+                sandbox="allow-scripts allow-same-origin allow-popups"
+                title="Browser-Use Live Stream"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Error banner */}
         {pipeline.error && (
           <div className="apple-card" style={{ marginTop: 24, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)' }}>

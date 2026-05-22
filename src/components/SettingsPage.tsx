@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { Settings } from "@/lib/store";
 import { AVAILABLE_COUNTRIES, AVAILABLE_JOB_SITES, DATE_RANGE_OPTIONS } from "@/lib/store";
 
@@ -12,6 +12,18 @@ export default function SettingsPage({ settings, onSave }: Props) {
   const [form, setForm] = useState<Settings>({ ...settings });
   const [termInput, setTermInput] = useState("");
   const [showKeys, setShowKeys] = useState(false);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeFile, setResumeFile] = useState<{ name: string; size: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/user/resume")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.fileName) setResumeFile({ name: data.fileName, size: data.sizeBytes });
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/env")
@@ -71,6 +83,49 @@ export default function SettingsPage({ settings, onSave }: Props) {
       if (updated.length === 0) return f;
       return { ...f, jobSites: updated };
     });
+  };
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      alert("Only PDF files are accepted");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert("File too large. Max 2MB.");
+      return;
+    }
+    setResumeUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/user/resume", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Upload failed");
+      }
+      setResumeFile({ name: file.name, size: file.size });
+      update("resumeFileName", file.name);
+    } catch (err: any) {
+      alert(`Upload failed: ${err.message}`);
+    } finally {
+      setResumeUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleResumeDelete = async () => {
+    try {
+      await fetch("/api/user/resume", { method: "DELETE" });
+      setResumeFile(null);
+      update("resumeFileName", "");
+    } catch {
+      alert("Failed to delete resume");
+    }
   };
 
   const getStatusBadge = (status: 'stable' | 'beta' | 'experimental') => {
@@ -452,6 +507,41 @@ export default function SettingsPage({ settings, onSave }: Props) {
                   <label className="form-label" style={{ margin: 0 }}>Raw Resume Ingestion</label>
                   <span style={{ fontSize: 10, color: 'var(--success)', fontWeight: 700, letterSpacing: '0.05em' }}>CORE KNOWLEDGE BASE</span>
                 </div>
+                <div style={{ marginBottom: 16, padding: 16, background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid var(--border-glass)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={handleResumeUpload}
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={resumeUploading}
+                      style={{ padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 12 }}
+                    >
+                      {resumeUploading ? (
+                        <><span className="spinner" /> Uploading...</>
+                      ) : (
+                        <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Upload PDF Resume</>
+                      )}
+                    </button>
+                    {resumeFile && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        <span style={{ color: 'var(--success)' }}>{resumeFile.name}</span>
+                        <span style={{ opacity: 0.5 }}>({(resumeFile.size / 1024).toFixed(0)} KB)</span>
+                        <button onClick={handleResumeDelete} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 4 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Upload a PDF resume for AI-powered job applications. Max 2MB. The text below serves as fallback.</p>
+                </div>
                 <textarea
                   className="apple-form-control"
                   placeholder="Paste your plain text resume here. The AI will extract your skills and experience from this block."
@@ -490,6 +580,39 @@ export default function SettingsPage({ settings, onSave }: Props) {
               <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
                 <div style={{ width: '40%', height: '100%', background: 'linear-gradient(90deg, var(--warning), #fbbf24)', borderRadius: 3, boxShadow: '0 0 10px rgba(245,158,11,0.3)' }} />
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="apple-card" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.02), rgba(16,185,129,0.02))', border: '1px solid rgba(59,130,246,0.15)' }}>
+        <div className="card-header" style={{ padding: '24px', borderBottom: '1px solid var(--border-glass)' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(59,130,246,0.3)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em' }}>Session Sync</h3>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Keep your Browser-Use Cloud sessions authenticated with your local browser cookies.</p>
+            </div>
+          </div>
+        </div>
+        <div className="card-body" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ padding: 16, background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid var(--border-glass)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4v16h16"/><polyline points="20 10 12 18 8 14"/></svg>
+                Cloud Cookie Sync
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
+                Sync your local browser session (cookies, logins) to your Browser-Use Cloud profile so automated agents start already authenticated. Run this command in your terminal after logging into Indeed/LinkedIn in your local Chrome:
+              </p>
+              <div style={{ background: 'rgba(0,0,0,0.4)', padding: 16, borderRadius: 10, fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                <span style={{ color: 'var(--accent-primary)' }}>$</span> curl -fsSL https://browser-use.com/profile.sh | BROWSER_USE_API_KEY=<span style={{ color: 'var(--success)' }}>{form.browserUseApiKey ? form.browserUseApiKey.substring(0, 12) + '...' : 'YOUR_API_KEY'}</span> sh
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>
+                This uploads your current Chrome cookies to the Browser-Use Cloud profile associated with your <strong>BROWSER_PROFILE_ID</strong>. Run it whenever your sessions expire.
+              </p>
             </div>
           </div>
         </div>

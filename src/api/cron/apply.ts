@@ -1,6 +1,58 @@
 import { BrowserUseClient } from "browser-use-sdk";
 
-async function applyToJobs(jobs: any[], waitForCompletion = false) {
+interface ResumeData {
+    base64?: string;
+    fileName?: string;
+    text?: string;
+}
+
+async function uploadResumeToSession(client: BrowserUseClient, sessionId: string, resume: ResumeData): Promise<string | null> {
+    if (!resume.base64) return null;
+
+    const buffer = Buffer.from(resume.base64, "base64");
+    const fileName = resume.fileName || "resume.pdf";
+
+    try {
+        console.log(`📤 Requesting presigned upload URL for resume...`);
+        const uploadUrlResponse = await client.files.browserSessionUploadFilePresignedUrl({
+            session_id: sessionId,
+            body: {
+                fileName: fileName,
+                contentType: "application/pdf",
+                sizeBytes: buffer.length,
+            },
+        });
+
+        const { url, fields } = uploadUrlResponse;
+
+        // Build multipart form data for the presigned URL
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(fields)) {
+            formData.append(key, value);
+        }
+        formData.append("file", new Blob([buffer], { type: "application/pdf" }), fileName);
+
+        console.log(`📤 Uploading resume to session sandbox...`);
+        const uploadRes = await fetch(url, {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!uploadRes.ok) {
+            const text = await uploadRes.text();
+            console.error(`❌ Resume upload failed: ${text}`);
+            return null;
+        }
+
+        console.log(`✅ Resume uploaded successfully to session!`);
+        return fileName;
+    } catch (err) {
+        console.error(`❌ Failed to upload resume: ${err}`);
+        return null;
+    }
+}
+
+async function applyToJobs(jobs: any[], waitForCompletion = false, resume?: ResumeData) {
     console.log(`\n🚀 Starting job application process for ${jobs.length} job(s)...\n`);
 
     // Initialize client here to ensure environment variables are loaded
@@ -26,12 +78,18 @@ async function applyToJobs(jobs: any[], waitForCompletion = false) {
     const session = await client.sessions.createSession({
         profileId: BROWSER_PROFILE_ID,
         persistMemory: true,
-        proxyCountryCode: "us", // Use Philippines residential proxy to avoid Cloudflare
+        proxyCountryCode: "us",
     });
     const sessionId = session.id;
     console.log(`✅ Session created: ${sessionId}`);
     if (session.liveUrl) {
         console.log(`🔗 Live URL: ${session.liveUrl}`);
+    }
+
+    // Upload resume to session sandbox if available
+    let uploadedResumeFileName: string | null = null;
+    if (resume) {
+        uploadedResumeFileName = await uploadResumeToSession(client, sessionId, resume);
     }
 
     // Build task for applying to jobs (skip login since we have cookies)
@@ -61,6 +119,24 @@ async function applyToJobs(jobs: any[], waitForCompletion = false) {
         const friday = `${nextFri.toLocaleDateString('en-US', options)} ${timeRange}`;
         return { wednesday, friday };
     }
+    const resumeTextBlock = resume?.text
+        ? `\nYour resume text content (paste as fallback if file upload fails):\n${resume.text}`
+        : '';
+    const resumeInstruction = uploadedResumeFileName
+        ? `
+RESUME FILE AVAILABLE:
+Your resume has been uploaded to the session sandbox at: /workspace/${uploadedResumeFileName}
+When you encounter a job application that requires a resume upload:
+1. Click the "Upload Resume" or file input button on the form
+2. Use the file dialog to navigate to /workspace/${uploadedResumeFileName}
+3. Select the file and wait for it to upload
+4. Confirm the upload was successful before proceeding${resumeTextBlock}
+`
+        : `
+IMPORTANT - RESUME UPLOAD UNAVAILABLE:
+No resume file was uploaded. If a job application requires a resume upload, you should skip that job and move on.
+`;
+
     const comprehensiveTask = `
 You need to apply to multiple jobs on Indeed. You should already be logged in via saved cookies.
 
@@ -102,16 +178,17 @@ For each job:
 4. Once on the job page, scroll down slowly to read the job details
 5. Look for and click the "Apply" or "Apply now" button
 6. Fill out any required application fields using autofill where available
-7. If file upload is required (resume, cover letter), note that you cannot upload and skip this job
+7. If file upload is required (resume, cover letter), use the resume file if available (see RESUME FILE AVAILABLE section below)
 8. If the form is simple (no file uploads), submit the application
 9. Wait for confirmation that application was submitted
 10. Wait 3-5 seconds before moving to the next job
+
+${resumeInstruction}
 
 IMPORTANT:
 - BE PATIENT with Cloudflare - rushing causes more blocks
 - If a job keeps getting blocked by Cloudflare after 2 attempts, skip it and move on
 - Stay logged in throughout the entire process
-- Skip jobs that require file uploads or complex multi-page forms
 - Complete as many ${jobs.length} applications as possible
 - Report the status of each job application (submitted, skipped, blocked by Cloudflare, error)
 - Don't apply to jobs in the home page. Only apply to the specific jobs you are given.
@@ -144,6 +221,7 @@ Use the following information if needed to apply to the job.
     const taskInfo = {
         taskId: task.id,
         sessionId: sessionId,
+        liveUrl: session.liveUrl || null,
         viewUrl: `https://cloud.browser-use.com/thread/${task.sessionId}`,
         jobCount: jobs.length,
         jobs: jobs.map(job => ({
@@ -171,7 +249,7 @@ Use the following information if needed to apply to the job.
             console.log(`✅ Session stopped successfully.`);
 
             console.log(`\n${'='.repeat(60)}\n`);
-            return { ...taskInfo, result: result.output };
+            return { ...taskInfo, result: result.output, liveUrl: session.liveUrl || null };
         } catch (error) {
             // Stop session even on error
             console.log(`\n🛑 Error occurred, stopping session ${sessionId}...`);

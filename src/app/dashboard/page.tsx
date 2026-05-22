@@ -657,7 +657,7 @@ export default function Home() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Apply failed");
         addLog(`Application tasks created: ${data.taskId || "N/A"}`, "success");
-        setPipeline((p) => ({ ...p, status: "completed", currentStep: 4, progress: 100, stepProgress: { ...p.stepProgress, apply: 100 } }));
+        setPipeline((p) => ({ ...p, status: "completed", currentStep: 4, progress: 100, stepProgress: { ...p.stepProgress, apply: 100 }, liveUrl: data.liveUrl || undefined, viewUrl: data.viewUrl || undefined }));
         addToast("Applications submitted!", "success");
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Unknown error";
@@ -887,6 +887,11 @@ export default function Home() {
         </nav>
 
         <div className="sidebar-footer">
+          {!isSidebarCollapsed && (
+            <div className="sidebar-version" style={{ textAlign: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>v1.6</span>
+            </div>
+          )}
           <div className={`sidebar-user ${isSidebarCollapsed ? "collapsed" : ""}`}>
             <UserMenu collapsed={isSidebarCollapsed} />
           </div>
