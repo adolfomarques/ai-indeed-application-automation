@@ -148,40 +148,50 @@ APPLICATION INFORMATION:
 - Only available on ${getNextWeekDates().wednesday} and ${getNextWeekDates().friday}
 `;
 
-    console.log(`📋 Queueing ${jobs.length} individual tasks on session ${sessionId}...`);
-    
-    const createdTasks = [];
-    for (const job of jobs) {
-        const jobTaskPrompt = `
+    const jobList = jobs.map((job, idx) => `
+JOB ${idx + 1}:
+Title: ${job.title}
+Company: ${job.company}
+Target URL: ${job.jobUrl}
+`).join('\n');
+
+    const jobTaskPrompt = `
 ${baseInstructions}
 
-STEP 2: APPLY TO THIS JOB ONLY
-Target Job URL: ${job.jobUrl}
+STEP 2: APPLY TO THESE JOBS IN SEQUENCE
+You must apply to the following ${jobs.length} jobs one by one.
+Do not skip any job unless the page is completely broken.
 
-1. Navigate directly to the target job URL.
+${jobList}
+
+For EACH job in the list above:
+1. Navigate directly to the Target URL.
 2. Wait for page to fully load (wait 3-5 seconds).
 3. Look for and click the "Apply" or "Apply now" button.
 4. Fill out any required application fields using autofill where available.
 5. If file upload is required, use the resume file if available.
 6. Submit the application and wait for confirmation.
-7. End the task immediately after confirmation.
+7. Once confirmed, move on to the next job in the list.
 
 ${resumeInstruction}
-        `;
 
-        const task = await client.tasks.createTask({
-            task: jobTaskPrompt,
-            sessionId: sessionId,
-        });
-        createdTasks.push(task);
-        console.log(`   ✅ Queued task ${task.id} for job: ${job.title}`);
-    }
+When you have finished all jobs, end the task.
+    `;
 
-    console.log(`\n✅ All ${createdTasks.length} tasks successfully queued to Browser-Use Cloud!`);
+    console.log(`📋 Creating a single mega-task for ${jobs.length} jobs on session ${sessionId}...`);
+    
+    const task = await client.tasks.createTask({
+        task: jobTaskPrompt,
+        sessionId: sessionId,
+    });
+    
+    console.log(`   ✅ Queued mega-task ${task.id} for all ${jobs.length} jobs`);
+
+    console.log(`\n✅ Task successfully queued to Browser-Use Cloud!`);
     console.log(`🔗 Watch live session at: https://cloud.browser-use.com/thread/${sessionId}`);
 
     const taskInfo = {
-        taskIds: createdTasks.map(t => t.id),
+        taskIds: [task.id],
         sessionId: sessionId,
         liveUrl: session.liveUrl || null,
         viewUrl: `https://cloud.browser-use.com/thread/${sessionId}`,
@@ -194,17 +204,13 @@ ${resumeInstruction}
     };
 
     if (waitForCompletion) {
-        console.log(`\n⏳ Waiting for all ${createdTasks.length} applications to complete...`);
+        console.log(`\n⏳ Waiting for the application task to complete...`);
         console.log(`💡 This will take several minutes. Watch progress at the URL above.`);
         
         try {
-            const results = [];
-            for (let i = 0; i < createdTasks.length; i++) {
-                console.log(`⏳ Waiting for task ${i + 1}/${createdTasks.length} (${createdTasks[i].id})...`);
-                const result = await createdTasks[i].complete();
-                results.push(result.output);
-                console.log(`✅ Task ${i + 1} completed.`);
-            }
+            console.log(`⏳ Waiting for task ${task.id}...`);
+            const result = await task.complete();
+            console.log(`✅ Task completed.`);
 
             console.log(`\n🛑 Stopping session ${sessionId}...`);
             await client.sessions.updateSession({
@@ -213,7 +219,7 @@ ${resumeInstruction}
             });
             console.log(`✅ Session stopped successfully.`);
 
-            return { ...taskInfo, results, liveUrl: session.liveUrl || null };
+            return { ...taskInfo, results: [result.output], liveUrl: session.liveUrl || null };
         } catch (error) {
             console.log(`\n🛑 Error occurred, stopping session ${sessionId}...`);
             await client.sessions.updateSession({
@@ -223,7 +229,7 @@ ${resumeInstruction}
             throw error;
         }
     } else {
-        console.log(`\n🚀 Tasks are running sequentially in the cloud session.`);
+        console.log(`\n🚀 Task is running in the cloud session.`);
         console.log(`💡 Watch the progress live at: https://cloud.browser-use.com/thread/${sessionId}`);
         return taskInfo;
     }
