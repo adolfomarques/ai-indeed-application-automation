@@ -2,7 +2,7 @@
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState, useMemo } from "react";
+import { Suspense, useState, useMemo, useEffect } from "react";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
@@ -54,6 +54,11 @@ function SignInContent() {
   }, [callbackError]);
 
   const displayError = error || urlError;
+
+  // Pré-aquece o endpoint de autenticação no mount para eliminar cold start ao clicar
+  useEffect(() => {
+    fetch("/api/auth/csrf").catch(() => {});
+  }, []);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);

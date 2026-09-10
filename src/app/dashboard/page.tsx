@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Dashboard from "@/components/Dashboard";
 import JobsPage from "@/components/JobsPage";
@@ -82,45 +82,70 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
 }
 
 export default function Home() {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [settings, setSettings] = useState<Settings>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("jobpilot_settings");
+      if (saved) {
+        try { return JSON.parse(saved); } catch {}
+      }
+    }
+    return DEFAULT_SETTINGS;
+  });
+  const [isLoaded, setIsLoaded] = useState(true);
   const [page, setPage] = useState<Page>("dashboard");
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<Job[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("jobpilot_jobs");
+      if (saved) {
+        try { return JSON.parse(saved); } catch {}
+      }
+    }
+    return [];
+  });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isInitialSync = useRef(true);
 
   const { data: session } = useSession();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("jobpilot_settings");
       const sidebarState = localStorage.getItem("jobpilot_sidebar_collapsed");
-      if (saved) {
-        try {
-          setSettings(JSON.parse(saved));
-        } catch (e) {
-          console.error("Failed to parse settings", e);
-        }
-      }
       if (sidebarState) {
         setIsSidebarCollapsed(sidebarState === "true");
       }
-      setIsLoaded(true);
     }
   }, []);
 
+  // Carrega todas as informações do usuário em paralelo (Promise.allSettled)
   useEffect(() => {
     const uid = (session?.user as { id?: string } | undefined)?.id;
-    if (typeof window === "undefined" || !uid) return;
-    fetch("/api/user/settings")
-      .then((r) => r.ok ? r.json() : null)
-      .then((serverSettings) => {
-        if (serverSettings) {
-          setSettings(serverSettings);
-          localStorage.setItem("jobpilot_settings", JSON.stringify(serverSettings));
-        }
-      })
-      .catch(() => {});
+    if (!uid) return;
+
+    Promise.allSettled([
+      fetch("/api/user/settings").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/user/schedules").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/user/jobs").then((r) => (r.ok ? r.json() : null)),
+    ]).then(([settingsRes, schedulesRes, jobsRes]) => {
+      if (settingsRes.status === "fulfilled" && settingsRes.value) {
+        setSettings(settingsRes.value);
+        localStorage.setItem("jobpilot_settings", JSON.stringify(settingsRes.value));
+      }
+      if (schedulesRes.status === "fulfilled" && Array.isArray(schedulesRes.value)) {
+        setSchedules((prev) => {
+          const merged = [...schedulesRes.value];
+          for (const local of prev) {
+            if (!merged.find((s: Schedule) => s.id === local.id)) merged.push(local);
+          }
+          return merged;
+        });
+        localStorage.setItem("jobpilot_schedules", JSON.stringify(schedulesRes.value));
+      }
+      if (jobsRes.status === "fulfilled" && Array.isArray(jobsRes.value) && jobsRes.value.length > 0) {
+        setJobs(jobsRes.value);
+        localStorage.setItem("jobpilot_jobs", JSON.stringify(jobsRes.value));
+      }
+    }).catch(() => {});
   }, [session]);
 
   const openSidebar = () => setSidebarOpen(true);
@@ -234,6 +259,10 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("jobpilot_schedules", JSON.stringify(schedules));
+    }
+    if (isInitialSync.current) {
+      isInitialSync.current = false;
+      return;
     }
     syncSchedules(schedules);
   }, [schedules, syncSchedules]);
@@ -428,12 +457,6 @@ export default function Home() {
     [addToast, session]
   );
 
-  useEffect(() => {
-    const uid = (session?.user as { id?: string } | undefined)?.id;
-    if (typeof window === "undefined" || !uid) return;
-    loadSchedulesFromServer();
-    loadJobsFromServer();
-  }, [session, loadSchedulesFromServer, loadJobsFromServer]);
 
   // ─── Pipeline actions ───
   const runScrape = useCallback(async () => {

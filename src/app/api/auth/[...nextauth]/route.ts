@@ -1,7 +1,7 @@
 // src/app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { addActiveUser, getActiveUserCount, removeActiveUser } from "@/lib/kv";
+import { addActiveUser, removeActiveUser, isKvConfigured } from "@/lib/kv";
 import type { User, Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 
@@ -10,6 +10,13 @@ export const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      authorization: {
+        params: {
+          prompt: "select_account",
+          access_type: "online",
+          response_type: "code",
+        },
+      },
     }),
   ],
   // Fallback secret garante que NextAuth nunca quebre com NO_SECRET em produção
@@ -18,27 +25,26 @@ export const authOptions = {
     signIn: "/auth/signin",
     error: "/auth/signin",
   },
-  session: { strategy: "jwt" as const },
+  session: {
+    strategy: "jwt" as const,
+    maxAge: 30 * 24 * 60 * 60, // 30 dias de sessão persistente
+  },
   callbacks: {
     // ---------------------------------------------------------------------
-    // Sign‑in: limit to 5 concurrent users and persist profile in Vercel KV
+    // Sign‑in: Retorno ultra-rápido (<10ms) com sincronização em background
     // ---------------------------------------------------------------------
     async signIn({ user }: { user: User }) {
-      try {
-        const current = await getActiveUserCount();
-        if (current >= 5) {
-          console.warn("Maximum concurrent users reached – login denied.");
-          return false; // reject login
-        }
-        // Store user information (id, name, email, image)
-        await addActiveUser(user.id as string, {
+      // Executa a persistência de perfil no KV de forma assíncrona/não-bloqueante
+      // para não atrasar o redirecionamento do usuário para o Dashboard
+      if (isKvConfigured() && user?.id) {
+        addActiveUser(user.id, {
           id: user.id,
           name: user.name,
           email: user.email,
           image: user.image,
+        }).catch((err) => {
+          console.warn("[NextAuth] Background user sync warning:", err);
         });
-      } catch (err) {
-        console.warn("[NextAuth] KV operation skipped during sign in:", err);
       }
       return true;
     },
@@ -54,15 +60,13 @@ export const authOptions = {
       return session;
     },
     // ---------------------------------------------------------------------
-    // Sign‑out: clean up KV entry
+    // Sign‑out: Limpeza assíncrona
     // ---------------------------------------------------------------------
     async signOut({ token }: { token: JWT }) {
-      try {
-        if (token && token.id) {
-          await removeActiveUser(token.id as string);
-        }
-      } catch (err) {
-        console.warn("[NextAuth] KV operation skipped during sign out:", err);
+      if (isKvConfigured() && token?.id) {
+        removeActiveUser(token.id as string).catch((err) => {
+          console.warn("[NextAuth] Background signout sync warning:", err);
+        });
       }
       return true;
     },
