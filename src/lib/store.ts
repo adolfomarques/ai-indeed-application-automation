@@ -30,7 +30,10 @@ export interface Settings {
   openAiApiKey: string;
   togetherApiKey: string;
   ollamaEndpoint: string;
-  selectedAiProvider: "gemini" | "groq" | "deepseek" | "openai" | "ollama" | "together";
+  selectedAiProvider: "gemini" | "groq" | "deepseek" | "openai" | "ollama" | "together" | "heuristic";
+  aiTierMode: "cloud_free" | "byok";
+  matchingThreshold: number;
+  customDealbreakers: string;
   browserUseApiKey: string;
   browserProfileId: string;
   userPreferences: string;
@@ -104,7 +107,10 @@ export const DEFAULT_SETTINGS: Settings = {
   openAiApiKey: "",
   togetherApiKey: "",
   ollamaEndpoint: "http://localhost:11434",
-  selectedAiProvider: "gemini",
+  selectedAiProvider: "groq",
+  aiTierMode: "cloud_free",
+  matchingThreshold: 7.5,
+  customDealbreakers: "",
   browserUseApiKey: '',
   browserProfileId: '',
   userPreferences: '',

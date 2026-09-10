@@ -430,36 +430,25 @@ export default function Home() {
         addLog("No jobs to filter", "warn");
         return [];
       }
-      // Validate API Keys based on provider
-      if (settings.selectedAiProvider === "gemini" && !settings.geminiApiKey) {
-        addLog("Gemini API Key missing. Please add it in Settings.", "error");
-        addToast("Missing Gemini API Key", "error");
-        setPipeline((p) => ({ ...p, status: "idle" }));
-        return jobsToFilter;
-      }
-      if (settings.selectedAiProvider === "groq" && !settings.groqApiKey) {
-        addLog("Groq API Key missing. Please add it in Settings.", "error");
-        addToast("Missing Groq API Key", "error");
-        setPipeline((p) => ({ ...p, status: "idle" }));
-        return jobsToFilter;
-      }
-      if (settings.selectedAiProvider === "together" && !settings.togetherApiKey) {
-        addLog("Together AI Key missing. Please add it in Settings.", "error");
-        addToast("Missing Together AI Key", "error");
-        setPipeline((p) => ({ ...p, status: "idle" }));
-        return jobsToFilter;
-      }
-      if (settings.selectedAiProvider === "deepseek" && !settings.deepSeekApiKey) {
-        addLog("DeepSeek API Key missing. Please add it in Settings.", "error");
-        addToast("Missing DeepSeek API Key", "error");
-        setPipeline((p) => ({ ...p, status: "idle" }));
-        return jobsToFilter;
-      }
-      if (settings.selectedAiProvider === "openai" && !settings.openAiApiKey) {
-        addLog("OpenAI API Key missing. Please add it in Settings.", "error");
-        addToast("Missing OpenAI API Key", "error");
-        setPipeline((p) => ({ ...p, status: "idle" }));
-        return jobsToFilter;
+      // Check AI mode: Cloud Free (default) or BYOK
+      const isCloudFree = settings.aiTierMode === "cloud_free" || !settings.aiTierMode;
+      const provider = isCloudFree ? "groq" : (settings.selectedAiProvider || "groq");
+
+      if (isCloudFree) {
+        addLog("⚡ Using JobPilot Cloud Free Intelligence (Ultra-fast inference)...", "info");
+      } else if (provider === "heuristic") {
+        addLog("🛡️ Using JobPilot Heuristic Engine (100% Offline Matching)...", "info");
+      } else {
+        const keyMap: Record<string, string | undefined> = {
+          gemini: settings.geminiApiKey,
+          groq: settings.groqApiKey,
+          together: settings.togetherApiKey,
+          deepseek: settings.deepSeekApiKey,
+          openai: settings.openAiApiKey,
+        };
+        if (provider in keyMap && !keyMap[provider]) {
+          addLog(`Notice: ${provider.toUpperCase()} key not found. Using Cloud Engine fallback...`, "info");
+        }
       }
 
       setPipeline((p) => ({ 
@@ -490,18 +479,20 @@ export default function Home() {
             const res = await fetch("/api/filter-v2", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    jobs: batch,
-                    userPreferences: settings.userPreferences,
-                    myResume: settings.myResume,
-                    geminiApiKey: settings.geminiApiKey,
-                    groqApiKey: settings.groqApiKey,
-                    deepSeekApiKey: settings.deepSeekApiKey,
-                    openAiApiKey: settings.openAiApiKey,
-                    togetherApiKey: settings.togetherApiKey,
-                    ollamaEndpoint: settings.ollamaEndpoint,
-                    selectedAiProvider: settings.selectedAiProvider,
-                  }),
+              body: JSON.stringify({
+                jobs: batch,
+                userPreferences: settings.userPreferences,
+                myResume: settings.myResume,
+                geminiApiKey: settings.geminiApiKey,
+                groqApiKey: settings.groqApiKey,
+                deepSeekApiKey: settings.deepSeekApiKey,
+                openAiApiKey: settings.openAiApiKey,
+                togetherApiKey: settings.togetherApiKey,
+                ollamaEndpoint: settings.ollamaEndpoint,
+                selectedAiProvider: provider,
+                matchingThreshold: settings.matchingThreshold || 7.5,
+                customDealbreakers: settings.customDealbreakers || "",
+              }),
             });
 
             const data = await res.json();

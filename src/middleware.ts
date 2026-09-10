@@ -12,6 +12,6 @@ export default withAuth({
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/api/((?!auth|cron|qstash-test).*)",
+    "/api/user/:path*",
   ],
 };

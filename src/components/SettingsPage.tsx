@@ -15,6 +15,34 @@ export default function SettingsPage({ settings, onSave }: Props) {
   const [resumeUploading, setResumeUploading] = useState(false);
   const [resumeFile, setResumeFile] = useState<{ name: string; size: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [testingKey, setTestingKey] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string }>>({});
+
+  const handleTestConnection = async (provider: string, apiKey?: string, endpoint?: string) => {
+    setTestingKey(provider);
+    try {
+      const res = await fetch("/api/ai/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, apiKey, endpoint }),
+      });
+      const data = await res.json();
+      setTestResults((prev) => ({
+        ...prev,
+        [provider]: {
+          ok: data.ok,
+          message: data.ok ? `✓ ${data.latencyMs}ms (${data.model})` : `✕ ${data.error || "Failed"}`
+        }
+      }));
+    } catch (err: any) {
+      setTestResults((prev) => ({
+        ...prev,
+        [provider]: { ok: false, message: `✕ ${err.message}` }
+      }));
+    } finally {
+      setTestingKey(null);
+    }
+  };
 
   useEffect(() => {
     fetch("/api/user/resume")
@@ -168,35 +196,193 @@ export default function SettingsPage({ settings, onSave }: Props) {
         </div>
 
         <div className="grid-2">
-          <div className="apple-card" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.03), rgba(139,92,246,0.02))' }}>
+          <div className="apple-card" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.04), rgba(139,92,246,0.03))' }}>
             <div className="card-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-glass)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
                 </div>
-                <h3 style={{ fontSize: 15, fontWeight: 700 }}>Active Intelligence</h3>
+                <div>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Active Intelligence</h3>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>AI screening & matching logic</p>
+                </div>
               </div>
-              <span className="badge badge-info" style={{ fontSize: 10, background: 'rgba(99,102,241,0.15)', color: 'var(--accent-primary)', border: '1px solid rgba(99,102,241,0.2)' }}>ENGINE</span>
+              <span className="badge badge-info" style={{ fontSize: 10, background: 'rgba(99,102,241,0.15)', color: 'var(--accent-primary)', border: '1px solid rgba(99,102,241,0.2)' }}>ENGINE v2.2</span>
             </div>
-            <div className="card-body" style={{ padding: '24px' }}>
-              <div className="form-group">
-                <label className="form-label">Core Reasoning Brain</label>
-                <select 
-                  className="apple-form-control" 
-                  value={form.selectedAiProvider}
-                  onChange={(e) => update("selectedAiProvider", e.target.value as any)}
-                  style={{ appearance: 'none', backgroundPosition: 'right 16px center', backgroundRepeat: 'no-repeat', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")` }}
-                >
-                  <option value="gemini">Google Gemini 1.5 Pro</option>
-                  <option value="groq">Groq Llama 3.1 (70B)</option>
-                  <option value="deepseek">DeepSeek V3</option>
-                  <option value="openai">OpenAI GPT-4o</option>
-                  <option value="together">Together AI Llama 3</option>
-                  <option value="ollama">Local Llama (Ollama)</option>
-                </select>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Choose the LLM that will evaluate job matches and tailor responses.</p>
+            
+            <div className="card-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Mode Switcher */}
+              <div>
+                <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Intelligence Architecture</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, background: 'rgba(0,0,0,0.3)', padding: 4, borderRadius: 12, border: '1px solid var(--border-glass)' }}>
+                  <button
+                    type="button"
+                    onClick={() => update("aiTierMode", "cloud_free")}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 9,
+                      border: 'none',
+                      background: (form.aiTierMode !== "byok") ? 'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(139,92,246,0.3))' : 'transparent',
+                      color: (form.aiTierMode !== "byok") ? '#fff' : 'var(--text-secondary)',
+                      fontWeight: (form.aiTierMode !== "byok") ? 700 : 500,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      transition: 'all 0.2s ease',
+                      boxShadow: (form.aiTierMode !== "byok") ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+                    }}
+                  >
+                    <span>⚡</span> JobPilot Cloud (Free)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => update("aiTierMode", "byok")}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 9,
+                      border: 'none',
+                      background: (form.aiTierMode === "byok") ? 'linear-gradient(135deg, rgba(168,85,247,0.3), rgba(236,72,153,0.3))' : 'transparent',
+                      color: (form.aiTierMode === "byok") ? '#fff' : 'var(--text-secondary)',
+                      fontWeight: (form.aiTierMode === "byok") ? 700 : 500,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      transition: 'all 0.2s ease',
+                      boxShadow: (form.aiTierMode === "byok") ? '0 2px 8px rgba(168,85,247,0.25)' : 'none',
+                    }}
+                  >
+                    <span>🔑</span> Custom AI (BYOK)
+                  </button>
+                </div>
               </div>
-              {form.selectedAiProvider === "ollama" && (
+
+              {/* Cloud Free Tier Banner */}
+              {form.aiTierMode !== "byok" ? (
+                <div style={{ padding: '16px', borderRadius: 12, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }}></span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Zero-Config Cloud Engine Active</span>
+                    </div>
+                    <span className="badge" style={{ fontSize: 9, background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', padding: '2px 8px' }}>UNLIMITED FREE</span>
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    Powered by high-throughput Groq & Gemini cloud-hosted inference. Ready to screen all jobs instantly with zero API keys or setup required.
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={() => handleTestConnection("groq")}
+                      disabled={testingKey === "groq"}
+                      style={{ fontSize: 11, padding: '6px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer' }}
+                    >
+                      {testingKey === "groq" ? "⏳ Testing..." : "⚡ Ping Cloud Speed"}
+                    </button>
+                    {testResults["groq"] && (
+                      <span style={{ fontSize: 11, color: testResults["groq"].ok ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                        {testResults["groq"].message}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* BYOK Provider Selector */
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Core Reasoning Brain</label>
+                  <select 
+                    className="apple-form-control" 
+                    value={form.selectedAiProvider}
+                    onChange={(e) => update("selectedAiProvider", e.target.value as any)}
+                    style={{ appearance: 'none', backgroundPosition: 'right 16px center', backgroundRepeat: 'no-repeat', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")` }}
+                  >
+                    <option value="groq">⚡ Groq Cloud (Free Tier · Ultra Fast &lt; 1s)</option>
+                    <option value="gemini">🟢 Google Gemini 2.0 Flash (Free Tier · 1M Context)</option>
+                    <option value="deepseek">🔵 DeepSeek V3 (Ultra Low Cost · Deep Reasoning)</option>
+                    <option value="openai">🤖 OpenAI GPT-4o-mini (Gold Standard Accuracy)</option>
+                    <option value="together">⚡ Together AI Llama 3.3</option>
+                    <option value="heuristic">🛡️ JobPilot Algorithmic Matcher (100% Offline · No API)</option>
+                    <option value="ollama">💻 Local Llama (Ollama)</option>
+                  </select>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Select the exact LLM that evaluates your resume fit and job descriptions.</p>
+                </div>
+              )}
+
+              {/* Matching Strictness Sensitivity */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label className="form-label" style={{ margin: 0 }}>Matching Rigor (WCS Threshold)</label>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-primary)', background: 'rgba(99,102,241,0.1)', padding: '2px 8px', borderRadius: 6 }}>
+                    {(form.matchingThreshold ?? 7.5).toFixed(1)} / 10
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 10 }}>
+                  {[
+                    { label: "Lenient", score: 6.0, desc: "More jobs" },
+                    { label: "Balanced", score: 7.5, desc: "Recommended" },
+                    { label: "Strict", score: 8.5, desc: "Top fit only" },
+                  ].map((p) => {
+                    const active = (form.matchingThreshold ?? 7.5) === p.score;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => update("matchingThreshold", p.score)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 8,
+                          border: active ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
+                          background: active ? 'rgba(99,102,241,0.15)' : 'rgba(0,0,0,0.2)',
+                          color: active ? '#fff' : 'var(--text-muted)',
+                          fontSize: 11,
+                          cursor: 'pointer',
+                          fontWeight: active ? 700 : 500,
+                          textAlign: 'center',
+                        }}
+                      >
+                        <div>{p.label} ({p.score}+)</div>
+                        <div style={{ fontSize: 9, opacity: 0.7 }}>{p.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <input
+                  type="range"
+                  min="5.0"
+                  max="9.5"
+                  step="0.5"
+                  value={form.matchingThreshold ?? 7.5}
+                  onChange={(e) => update("matchingThreshold", parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Dealbreakers & Directives */}
+              <div className="form-group" style={{ margin: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label className="form-label" style={{ margin: 0 }}>Strict Dealbreakers & Custom Rules</label>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Optional prompt rules</span>
+                </div>
+                <textarea
+                  className="apple-form-control"
+                  rows={2}
+                  placeholder="e.g. Must offer 100% remote, Minimum $120k salary, No contract/freelance roles, Must use React..."
+                  value={form.customDealbreakers || ""}
+                  onChange={(e) => update("customDealbreakers", e.target.value)}
+                  style={{ fontSize: 12, resize: 'vertical', minHeight: 60 }}
+                />
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Injected into the AI prompt. Any job that fails these conditions receives an immediate penalty.
+                </p>
+              </div>
+
+              {form.selectedAiProvider === "ollama" && form.aiTierMode === "byok" && (
                 <div className="form-group animate-in">
                   <label className="form-label">Local Host Endpoint</label>
                   <input
@@ -354,43 +540,83 @@ export default function SettingsPage({ settings, onSave }: Props) {
               <div className="card-body" style={{ padding: '20px 24px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                   {[
-                    { id: 'geminiApiKey', label: 'Google Gemini', icon: '🟢' },
-                    { id: 'groqApiKey', label: 'Groq Cloud', icon: '⚡' },
-                    { id: 'deepSeekApiKey', label: 'DeepSeek', icon: '🔵' },
-                    { id: 'openAiApiKey', label: 'OpenAI', icon: '🤖' },
-                  ].map((key) => (
-                    <div key={key.id} className="form-group" style={{ margin: 0, padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid var(--border-glass)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 12 }}>{key.icon}</span> {key.label}
-                        </label>
-                        <span 
-                          style={{ fontSize: 10, color: '#ec4899', cursor: 'pointer', fontWeight: 700, letterSpacing: '0.05em', padding: '4px 8px', borderRadius: 4, background: 'rgba(236,72,153,0.1)' }}
-                          onClick={() => navigator.clipboard.writeText(form[key.id as keyof Settings] as string)}
-                        >
-                          COPY
-                        </span>
+                    { id: 'groqApiKey', label: 'Groq Cloud', icon: '⚡', provider: 'groq', freeUrl: 'https://console.groq.com/keys', freeText: 'Free Key (30s) ↗' },
+                    { id: 'geminiApiKey', label: 'Google Gemini', icon: '🟢', provider: 'gemini', freeUrl: 'https://aistudio.google.com/app/apikey', freeText: 'Free Key ↗' },
+                    { id: 'deepSeekApiKey', label: 'DeepSeek', icon: '🔵', provider: 'deepseek', freeUrl: 'https://platform.deepseek.com', freeText: 'Platform ↗' },
+                    { id: 'openAiApiKey', label: 'OpenAI', icon: '🤖', provider: 'openai', freeUrl: 'https://platform.openai.com/api-keys', freeText: 'API Keys ↗' },
+                    { id: 'togetherApiKey', label: 'Together AI', icon: '⚡', provider: 'together', freeUrl: 'https://api.together.ai', freeText: 'API Keys ↗' },
+                  ].map((key) => {
+                    const testStatus = testResults[key.provider];
+                    const isTesting = testingKey === key.provider;
+                    return (
+                      <div key={key.id} className="form-group" style={{ margin: 0, padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: 12, border: '1px solid var(--border-glass)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 12 }}>{key.icon}</span> {key.label}
+                          </label>
+                          <a
+                            href={key.freeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: 10, color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600 }}
+                          >
+                            {key.freeText}
+                          </a>
+                        </div>
+                        <div style={{ position: 'relative', marginBottom: 8 }}>
+                          <input
+                            className="apple-form-control"
+                            type={showKeys ? "text" : "password"}
+                            placeholder={`Enter ${key.label} Key...`}
+                            value={form[key.id as keyof Settings] as string || ""}
+                            onChange={(e) => update(key.id as keyof Settings, e.target.value)}
+                            style={{ 
+                              fontSize: 12, 
+                              fontFamily: 'var(--font-mono)', 
+                              background: 'rgba(0,0,0,0.4)', 
+                              borderColor: 'rgba(255,255,255,0.1)',
+                              padding: '10px 14px',
+                              paddingRight: 40,
+                              borderRadius: 10,
+                              width: '100%'
+                            }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleTestConnection(key.provider, form[key.id as keyof Settings] as string)}
+                              disabled={isTesting}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                background: 'rgba(255,255,255,0.06)',
+                                color: '#fff',
+                                fontSize: 10,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {isTesting ? "⏳ Testing..." : "⚡ Test"}
+                            </button>
+                            <span 
+                              style={{ fontSize: 10, color: '#ec4899', cursor: 'pointer', fontWeight: 700, letterSpacing: '0.05em', padding: '4px 8px', borderRadius: 6, background: 'rgba(236,72,153,0.1)' }}
+                              onClick={() => navigator.clipboard.writeText(form[key.id as keyof Settings] as string || "")}
+                            >
+                              COPY
+                            </span>
+                          </div>
+                          {testStatus && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: testStatus.ok ? '#10b981' : '#ef4444' }}>
+                              {testStatus.message}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ position: 'relative' }}>
-                        <input
-                          className="apple-form-control"
-                          type={showKeys ? "text" : "password"}
-                          value={form[key.id as keyof Settings] as string || ""}
-                          onChange={(e) => update(key.id as keyof Settings, e.target.value)}
-                          style={{ 
-                            fontSize: 12, 
-                            fontFamily: 'var(--font-mono)', 
-                            background: 'rgba(0,0,0,0.4)', 
-                            borderColor: 'rgba(255,255,255,0.1)',
-                            padding: '12px 14px',
-                            paddingRight: 40,
-                            borderRadius: 10,
-                            width: '100%'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
