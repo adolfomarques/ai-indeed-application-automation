@@ -232,7 +232,8 @@ ${resumeInstruction}
 export default applyToJobs;
 
 // Main execution when run directly
-if (require.main === module) {
+const isMainModule = typeof process !== 'undefined' && process.argv && process.argv[1] && process.argv[1].endsWith('apply.ts');
+if (isMainModule) {
     import('dotenv').then(dotenv => {
         dotenv.config();
 
