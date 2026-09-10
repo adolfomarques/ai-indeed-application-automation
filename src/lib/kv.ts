@@ -1,7 +1,7 @@
 // src/lib/kv.ts
 import { kv } from "@vercel/kv";
 
-/** Verifica se o Vercel KV / Upstash Redis está configurado no ambiente */
+/** Checks if Vercel KV / Upstash Redis is configured in the environment */
 export const isKvConfigured = (): boolean => {
   return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
 };

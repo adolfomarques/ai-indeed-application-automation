@@ -39,23 +39,23 @@ function SignInContent() {
   const urlError = useMemo(() => {
     if (!callbackError) return null;
     if (callbackError === "AccessDenied") {
-      return "Acesso negado. Limite de usuários simultâneos atingido.";
+      return "Access denied. Maximum concurrent active users limit reached.";
     }
     if (callbackError === "OAuthCallback" || callbackError === "Callback") {
-      return "Erro no retorno da autenticação Google. Verifique se a URI autorizada está cadastrada no Google Cloud Console.";
+      return "Google authentication callback error. Please verify that the authorized redirect URI is configured in Google Cloud Console.";
     }
     if (callbackError === "Configuration") {
-      return "Erro de configuração de autenticação. Verifique se GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET estão definidos na Vercel.";
+      return "Authentication configuration error. Please verify GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your Vercel settings.";
     }
     if (callbackError === "OAuthSignin") {
-      return "Não foi possível iniciar o login com Google. Verifique suas credenciais OAuth.";
+      return "Unable to initiate Google sign-in. Please verify your OAuth credentials.";
     }
-    return `Falha na autenticação (${callbackError}). Por favor, tente novamente.`;
+    return `Authentication failed (${callbackError}). Please try again.`;
   }, [callbackError]);
 
   const displayError = error || urlError;
 
-  // Pré-aquece o endpoint de autenticação no mount para eliminar cold start
+  // Pre-warm the authentication CSRF endpoint on mount to prevent cold start latency
   useEffect(() => {
     fetch("/api/auth/csrf").catch(() => {});
   }, []);
@@ -66,7 +66,7 @@ function SignInContent() {
     try {
       await signIn("google", { callbackUrl });
     } catch {
-      setError("Não foi possível conectar ao serviço de autenticação. Verifique sua conexão e tente novamente.");
+      setError("Unable to connect to the authentication service. Please check your network connection and try again.");
       setIsLoading(false);
     }
   };
@@ -101,15 +101,15 @@ function SignInContent() {
 
           <div className="auth-status-badge">
             <span className="auth-status-dot" />
-            <span>Sistema Ativo</span>
+            <span>System Online</span>
           </div>
         </div>
 
         {/* Central heading & subtitle */}
         <div className="auth-content">
-          <h1 className="auth-heading">Centro de Comando</h1>
+          <h1 className="auth-heading">Command Center</h1>
           <p className="auth-subtitle">
-            Acesse o pipeline automatizado para monitorar vagas, filtrar oportunidades com IA e gerenciar candidaturas.
+            Access your automated pipeline to monitor job boards, screen opportunities with AI, and manage applications in real time.
           </p>
         </div>
 
@@ -138,12 +138,12 @@ function SignInContent() {
           {isLoading ? (
             <>
               <span className="auth-spinner" />
-              <span>Conectando com o Google...</span>
+              <span>Connecting to Google...</span>
             </>
           ) : (
             <>
               <GoogleIcon />
-              <span>Continuar com Google</span>
+              <span>Continue with Google</span>
             </>
           )}
         </button>
@@ -156,7 +156,7 @@ function SignInContent() {
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
             </div>
-            <span>Autenticação direta e segura via Google OAuth</span>
+            <span>Secure direct authentication via Google OAuth 2.0</span>
           </div>
           <div className="auth-feature-item">
             <div className="auth-feature-icon">
@@ -164,7 +164,7 @@ function SignInContent() {
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
             </div>
-            <span>Execução autônoma de agendamentos e alertas</span>
+            <span>Autonomous schedule execution & cloud triggers</span>
           </div>
           <div className="auth-feature-item">
             <div className="auth-feature-icon">
@@ -174,12 +174,12 @@ function SignInContent() {
                 <line x1="12" y1="17" x2="12" y2="21" />
               </svg>
             </div>
-            <span>Triagem precisa de vagas com filtros de IA</span>
+            <span>Precision job screening powered by AI models</span>
           </div>
         </div>
 
         <p className="auth-footer">
-          Ambiente seguro. Nenhum dado ou senha pessoal é armazenado externamente.
+          Secure environment. No personal credentials or passwords stored externally.
         </p>
       </motion.div>
     </div>

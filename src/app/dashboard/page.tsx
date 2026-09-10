@@ -117,7 +117,7 @@ export default function Home() {
     }
   }, []);
 
-  // Carrega todas as informações do usuário em paralelo (Promise.allSettled)
+  // Load all user profile data in parallel (Promise.allSettled)
   useEffect(() => {
     const uid = (session?.user as { id?: string } | undefined)?.id;
     if (!uid) return;

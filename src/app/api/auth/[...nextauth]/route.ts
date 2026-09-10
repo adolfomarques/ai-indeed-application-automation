@@ -19,7 +19,7 @@ export const authOptions = {
       },
     }),
   ],
-  // Fallback secret garante que NextAuth nunca quebre com NO_SECRET em produção
+  // Fallback secret ensures NextAuth never crashes with NO_SECRET in production
   secret: process.env.NEXTAUTH_SECRET || "fQkakLgiY/SkBBlgDwQFH5WABAQE4nrlAvfRzDbmGSA=",
   pages: {
     signIn: "/auth/signin",
@@ -27,15 +27,15 @@ export const authOptions = {
   },
   session: {
     strategy: "jwt" as const,
-    maxAge: 30 * 24 * 60 * 60, // 30 dias de sessão persistente
+    maxAge: 30 * 24 * 60 * 60, // 30-day persistent session
   },
   callbacks: {
     // ---------------------------------------------------------------------
-    // Sign‑in: Retorno ultra-rápido (<10ms) com sincronização em background
+    // Sign-in: Non-blocking fast return (<10ms) with background sync
     // ---------------------------------------------------------------------
     async signIn({ user }: { user: User }) {
-      // Executa a persistência de perfil no KV de forma assíncrona/não-bloqueante
-      // para não atrasar o redirecionamento do usuário para o Dashboard
+      // Execute profile persistence asynchronously in background
+      // so redirect to Dashboard is immediate without waiting on KV HTTP
       if (isKvConfigured() && user?.id) {
         addActiveUser(user.id, {
           id: user.id,
@@ -60,7 +60,7 @@ export const authOptions = {
       return session;
     },
     // ---------------------------------------------------------------------
-    // Sign‑out: Limpeza assíncrona
+    // Sign-out: Asynchronous cleanup
     // ---------------------------------------------------------------------
     async signOut({ token }: { token: JWT }) {
       if (isKvConfigured() && token?.id) {
