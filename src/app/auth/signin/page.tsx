@@ -8,7 +8,7 @@ const easeOut = [0.16, 1, 0.3, 1] as const;
 
 function GoogleIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <path
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
         fill="#4285F4"
@@ -42,7 +42,7 @@ function SignInContent() {
       return "Acesso negado. Limite de usuários simultâneos atingido.";
     }
     if (callbackError === "OAuthCallback" || callbackError === "Callback") {
-      return "Erro no retorno da autenticação Google. Verifique se a URI https://jobspy-automation.vercel.app/api/auth/callback/google está cadastrada nos URIs de redirecionamento autorizados no Google Cloud Console.";
+      return "Erro no retorno da autenticação Google. Verifique se a URI autorizada está cadastrada no Google Cloud Console.";
     }
     if (callbackError === "Configuration") {
       return "Erro de configuração de autenticação. Verifique se GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET estão definidos na Vercel.";
@@ -55,7 +55,7 @@ function SignInContent() {
 
   const displayError = error || urlError;
 
-  // Pré-aquece o endpoint de autenticação no mount para eliminar cold start ao clicar
+  // Pré-aquece o endpoint de autenticação no mount para eliminar cold start
   useEffect(() => {
     fetch("/api/auth/csrf").catch(() => {});
   }, []);
@@ -66,26 +66,27 @@ function SignInContent() {
     try {
       await signIn("google", { callbackUrl });
     } catch {
-      setError("Unable to connect to the authentication service. Please check your network and try again.");
+      setError("Não foi possível conectar ao serviço de autenticação. Verifique sua conexão e tente novamente.");
       setIsLoading(false);
     }
   };
 
   return (
     <div className="auth-container">
-      <div className="auth-bg-gradient" />
-      <div className="auth-bg-grid" />
+      <div className="auth-ambient-glow-top" />
+      <div className="auth-ambient-glow-bottom" />
 
-      <div className="auth-panel">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 0.6, ease: easeOut }}
-          className="auth-card"
-        >
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: easeOut }}
+        className="auth-card"
+      >
+        {/* Top bar with brand & status badge */}
+        <div className="auth-header">
           <div className="auth-brand">
             <div className="auth-logo">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
                 <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
                 <path d="M9 12H4s.55-3.03 2-4.5c1.62-1.63 5-2.5 5-2.5" />
@@ -93,93 +94,120 @@ function SignInContent() {
               </svg>
             </div>
             <div className="auth-brand-text">
-              <h1 className="auth-brand-name">JobPilot AI</h1>
+              <span className="auth-brand-name">JobPilot AI</span>
               <span className="auth-brand-tagline">Quantum Suite</span>
             </div>
           </div>
 
-          <div className="auth-divider" />
-
-          <h2 className="auth-heading">Access your command center</h2>
-          <p className="auth-subtitle">
-            Sign in to manage your automated job pipeline, review AI-matched opportunities, and track application progress across all your configured schedules.
-          </p>
-
-          {displayError && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="auth-error"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span>{displayError}</span>
-            </motion.div>
-          )}
-
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
-            className="auth-google-btn"
-          >
-            {isLoading ? (
-              <>
-                <span className="auth-spinner" />
-                <span>Redirecting to Google...</span>
-              </>
-            ) : (
-              <>
-                <GoogleIcon />
-                <span>Continue with Google</span>
-              </>
-            )}
-          </button>
-
-          <p className="auth-footer">
-            By signing in, you agree to our Terms of Service and Privacy Policy.
-          </p>
-        </motion.div>
-      </div>
-
-      <div className="auth-decorative">
-        <div className="auth-deco-ring" />
-        <div className="auth-deco-ring auth-deco-ring-outer" />
-        <div className="auth-deco-dots" />
-        <div className="auth-deco-lines" />
-        <div className="auth-deco-label">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          <span>Automated pipeline</span>
+          <div className="auth-status-badge">
+            <span className="auth-status-dot" />
+            <span>Sistema Ativo</span>
+          </div>
         </div>
-      </div>
+
+        {/* Central heading & subtitle */}
+        <div className="auth-content">
+          <h1 className="auth-heading">Centro de Comando</h1>
+          <p className="auth-subtitle">
+            Acesse o pipeline automatizado para monitorar vagas, filtrar oportunidades com IA e gerenciar candidaturas.
+          </p>
+        </div>
+
+        {/* Error message if present */}
+        {displayError && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="auth-error"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{displayError}</span>
+          </motion.div>
+        )}
+
+        {/* Google Sign-in button */}
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+          className="auth-google-btn"
+        >
+          {isLoading ? (
+            <>
+              <span className="auth-spinner" />
+              <span>Conectando com o Google...</span>
+            </>
+          ) : (
+            <>
+              <GoogleIcon />
+              <span>Continuar com Google</span>
+            </>
+          )}
+        </button>
+
+        {/* Security and feature trust badges */}
+        <div className="auth-features">
+          <div className="auth-feature-item">
+            <div className="auth-feature-icon">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <span>Autenticação direta e segura via Google OAuth</span>
+          </div>
+          <div className="auth-feature-item">
+            <div className="auth-feature-icon">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+            </div>
+            <span>Execução autônoma de agendamentos e alertas</span>
+          </div>
+          <div className="auth-feature-item">
+            <div className="auth-feature-icon">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+              </svg>
+            </div>
+            <span>Triagem precisa de vagas com filtros de IA</span>
+          </div>
+        </div>
+
+        <p className="auth-footer">
+          Ambiente seguro. Nenhum dado ou senha pessoal é armazenado externamente.
+        </p>
+      </motion.div>
     </div>
   );
 }
 
 export default function SignIn() {
   return (
-    <Suspense fallback={
-      <div className="auth-container">
-        <div className="auth-bg-gradient" />
-        <div className="auth-panel">
-          <div className="auth-card" style={{ opacity: 0.5 }}>
-            <div className="auth-brand">
-              <div className="auth-logo" />
-              <div className="auth-brand-text">
-                <h1 className="auth-brand-name">JobPilot AI</h1>
-                <span className="auth-brand-tagline">Quantum Suite</span>
+    <Suspense
+      fallback={
+        <div className="auth-container">
+          <div className="auth-ambient-glow-top" />
+          <div className="auth-card" style={{ opacity: 0.6 }}>
+            <div className="auth-header">
+              <div className="auth-brand">
+                <div className="auth-logo" />
+                <div className="auth-brand-text">
+                  <span className="auth-brand-name">JobPilot AI</span>
+                  <span className="auth-brand-tagline">Quantum Suite</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <SignInContent />
     </Suspense>
   );
 }
+
