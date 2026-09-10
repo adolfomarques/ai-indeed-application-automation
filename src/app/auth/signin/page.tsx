@@ -39,12 +39,18 @@ function SignInContent() {
   const urlError = useMemo(() => {
     if (!callbackError) return null;
     if (callbackError === "AccessDenied") {
-      return "Access denied. Maximum concurrent users reached. Please try again later.";
+      return "Acesso negado. Limite de usuários simultâneos atingido.";
     }
-    if (callbackError === "Callback") {
-      return "Session expired. Please sign in again.";
+    if (callbackError === "OAuthCallback" || callbackError === "Callback") {
+      return "Erro no retorno da autenticação Google. Verifique se a URI https://jobspy-automation.vercel.app/api/auth/callback/google está cadastrada nos URIs de redirecionamento autorizados no Google Cloud Console.";
     }
-    return "Authentication failed. Please try again.";
+    if (callbackError === "Configuration") {
+      return "Erro de configuração de autenticação. Verifique se GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET estão definidos na Vercel.";
+    }
+    if (callbackError === "OAuthSignin") {
+      return "Não foi possível iniciar o login com Google. Verifique suas credenciais OAuth.";
+    }
+    return `Falha na autenticação (${callbackError}). Por favor, tente novamente.`;
   }, [callbackError]);
 
   const displayError = error || urlError;
