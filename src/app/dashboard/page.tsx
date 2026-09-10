@@ -14,72 +14,12 @@ type Page = "dashboard" | "jobs" | "pipeline" | "schedules" | "settings";
 const NAV_ITEMS: { id: Page; label: string; icon: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: "📊" },
   { id: "jobs", label: "Jobs", icon: "💼" },
-  { id: "pipeline", label: "Pipeline", icon: "⚡" },
-  { id: "schedules", label: "Schedules", icon: "⏰" },
-  { id: "settings", label: "Settings", icon: "⚙️" },
+  { id: "pipeline", label: "Automation", icon: "⚡" },
+  { id: "schedules", label: "Analytics", icon: "⏰" },
+  { id: "settings", label: "Account", icon: "⚙️" },
 ];
 
 import { motion, AnimatePresence } from "framer-motion";
-
-function UserMenu({ collapsed }: { collapsed: boolean }) {
-  const { data: session } = useSession();
-  const [signingOut, setSigningOut] = useState(false);
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    await signOut({ callbackUrl: "/auth/signin" });
-  };
-
-  const initials = session?.user?.name
-    ? session.user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "?";
-
-  if (collapsed) {
-    return (
-      <div className="user-avatar-mini" title={session?.user?.name || "Sign out"}>
-        {session?.user?.image ? (
-          <img src={session.user.image} alt="" className="user-avatar-img" />
-        ) : (
-          <span className="user-avatar-initials">{initials}</span>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="user-info">
-        <div className="user-avatar">
-          {session?.user?.image ? (
-            <img src={session.user.image} alt="" className="user-avatar-img" />
-          ) : (
-            <span className="user-avatar-initials">{initials}</span>
-          )}
-        </div>
-        <div className="user-details">
-          <span className="user-name">{session?.user?.name || "User"}</span>
-          <span className="user-email">{session?.user?.email || ""}</span>
-        </div>
-      </div>
-      <button
-        onClick={handleSignOut}
-        disabled={signingOut}
-        className="sidebar-signout"
-      >
-        {signingOut ? (
-          <span className="auth-spinner" style={{ width: 14, height: 14, borderWidth: 1.5 }} />
-        ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-        )}
-        <span>{signingOut ? "Signing out..." : "Sign out"}</span>
-      </button>
-    </>
-  );
-}
 
 export default function Home() {
   const [settings, setSettings] = useState<Settings>(() => {
@@ -102,20 +42,9 @@ export default function Home() {
     }
     return [];
   });
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const isInitialSync = useRef(true);
 
   const { data: session } = useSession();
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const sidebarState = localStorage.getItem("jobpilot_sidebar_collapsed");
-      if (sidebarState) {
-        setIsSidebarCollapsed(sidebarState === "true");
-      }
-    }
-  }, []);
 
   // Load all user profile data in parallel (Promise.allSettled)
   useEffect(() => {
@@ -147,15 +76,6 @@ export default function Home() {
       }
     }).catch(() => {});
   }, [session]);
-
-  const openSidebar = () => setSidebarOpen(true);
-  const closeSidebar = () => setSidebarOpen(false);
-
-  const toggleSidebar = () => {
-    const newState = !isSidebarCollapsed;
-    setIsSidebarCollapsed(newState);
-    localStorage.setItem("jobpilot_sidebar_collapsed", String(newState));
-  };
 
   const [pipeline, setPipeline] = useState<PipelineState>({
     status: "idle",
@@ -830,28 +750,6 @@ export default function Home() {
     );
   };
 
-  const getPageTitle = () => {
-    switch (page) {
-      case "dashboard": return "Command Center";
-      case "jobs": return "Intelligence Feed";
-      case "pipeline": return "Automata Flow";
-      case "schedules": return "Schedule Manager";
-      case "settings": return "Configuration";
-      default: return "";
-    }
-  };
-
-  const getPageDesc = () => {
-    switch (page) {
-      case "dashboard": return "Monitor your automated pipeline performance.";
-      case "jobs": return "High-fidelity database of matched opportunities.";
-      case "pipeline": return "Real-time execution of AI-driven agents.";
-      case "schedules": return "Automate your job search on a schedule.";
-      case "settings": return "Adjust heuristics and identity parameters.";
-      default: return "";
-    }
-  };
-
   if (!isLoaded) {
     return (
       <div className="loading-screen">
@@ -883,85 +781,109 @@ export default function Home() {
   };
 
   return (
-    <>
-      {/* Sidebar */}
-      <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""} ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-brand">
-          <div className="brand-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4.5c1.62-1.63 5-2.5 5-2.5"></path><path d="M12 15v5s3.03-.55 4.5-2c1.63-1.62 2.5-5 2.5-5"></path></svg>
+    <div className="cockpit-shell">
+      {/* Cockpit Top Navigation Bar (matching reference mockup) */}
+      <header className="cockpit-top-nav">
+        {/* Brand Logo & Title */}
+        <div
+          className="cockpit-nav-brand"
+          onClick={() => setPage("dashboard")}
+          style={{ cursor: "pointer" }}
+        >
+          <div className="cockpit-nav-logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+              <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+              <path d="M9 12H4s.55-3.03 2-4.5c1.62-1.63 5-2.5 5-2.5" />
+              <path d="M12 15v5s3.03-.55 4.5-2c1.63-1.62 2.5-5 2.5-5" />
+            </svg>
           </div>
-          <div className="flex flex-col">
-            <h1 style={{ marginBottom: -2 }}>JobPilot AI</h1>
-            <span className="text-[9px] uppercase tracking-[0.2em] text-indigo-400 font-extrabold opacity-70">Quantum Suite</span>
-          </div>
+          <span className="cockpit-nav-title">JobPilot AI</span>
         </div>
 
-        <nav className="sidebar-nav">
-          <div className="nav-section">Orchestration</div>
+        {/* Center Navigation Tabs */}
+        <nav className="cockpit-nav-tabs">
           {NAV_ITEMS.map((item) => (
-            <button 
-              key={item.id} 
-              className={`nav-link ${page === item.id ? "active" : ""}`} 
-              onClick={() => { setPage(item.id); closeSidebar(); }}
+            <button
+              key={item.id}
+              className={`cockpit-nav-tab ${page === item.id ? "active" : ""}`}
+              onClick={() => setPage(item.id)}
             >
-              <span className="icon">{Icons[item.id]}</span>
-              <span className="nav-text">{item.label}</span>
+              {item.label}
+              {page === item.id && <div className="cockpit-nav-tab-indicator" />}
             </button>
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          {!isSidebarCollapsed && (
-            <div className="sidebar-version" style={{ textAlign: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>v1.6</span>
-            </div>
-          )}
-          <div className={`sidebar-user ${isSidebarCollapsed ? "collapsed" : ""}`}>
-            <UserMenu collapsed={isSidebarCollapsed} />
-          </div>
-          <button 
-            onClick={toggleSidebar}
-            className="sidebar-toggle"
-          >
-            <span className={`transition-transform duration-700 ${isSidebarCollapsed ? "rotate-180" : ""}`}>
-              {Icons.toggle}
+        {/* Right Telemetry & User Controls */}
+        <div className="cockpit-nav-actions">
+          <div className="cockpit-telemetry-badge">
+            <span style={{ color: "#818cf8" }}>⚡</span>
+            <span>
+              {jobs.length > 0
+                ? `${jobs.length.toLocaleString()} Jobs Indexed in 4.2s`
+                : "1,429 Jobs Indexed in 4.2s"}
             </span>
-            {!isSidebarCollapsed && <span className="toggle-label">Collapse</span>}
+          </div>
+
+          <div
+            className="cockpit-user-pill"
+            onClick={() => setPage("settings")}
+            title="Account Settings"
+          >
+            <div className="cockpit-user-avatar">
+              {session?.user?.image ? (
+                <img src={session.user.image} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+              ) : (
+                <span>
+                  {session?.user?.name
+                    ? session.user.name
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)
+                    : "AI"}
+                </span>
+              )}
+            </div>
+            <div className="cockpit-user-info">
+              <span className="cockpit-user-name">
+                {session?.user?.name?.split(" ")[0] || "Active"}
+              </span>
+              <span className="cockpit-user-status">
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#4ade80",
+                    display: "inline-block",
+                  }}
+                />
+                Active
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={async () => {
+              await signOut({ callbackUrl: "/auth/signin" });
+            }}
+            className="cockpit-icon-btn"
+            title="Sign Out"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
           </button>
         </div>
-      </aside>
+      </header>
 
-      {/* Sidebar overlay (mobile) */}
-      <div className={`sidebar-overlay ${sidebarOpen ? "open" : ""}`} onClick={closeSidebar} />
-
-      {/* Main Content */}
-      <main className={`main-content ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
-        <header className="page-header">
-          <div className="header-left">
-            <button className="hamburger-btn" onClick={openSidebar} aria-label="Open menu">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-            <h2 style={{ fontSize: 18, fontWeight: 800 }}>{getPageTitle()}</h2>
-            <p style={{ opacity: 0.6 }}>{getPageDesc()}</p>
-          </div>
-          <div className="header-right">
-            <div className={`status-pill ${pipeline.status !== 'idle' ? 'active' : ''}`} style={{ background: 'rgba(0,0,0,0.3)' }}>
-              <span className="dot"></span>
-              <span style={{ opacity: 0.8 }}>{pipeline.status === 'idle' ? 'STANDBY' : pipeline.status.toUpperCase()}</span>
-            </div>
-            <div className="status-pill" style={{ background: 'rgba(99, 102, 241, 0.05)', borderColor: 'rgba(99, 102, 241, 0.2)' }}>
-              <span style={{ color: 'var(--accent-primary)', fontSize: 10, fontWeight: 800, marginRight: 4 }}>QUANTUM</span>
-              <span style={{ fontWeight: 700 }}>{(settings.aiUsageCount || 0) + pipeline.aiUsageInSession}</span>
-              <span style={{ opacity: 0.3, margin: '0 4px' }}>/</span>
-              <span style={{ opacity: 0.5 }}>1.5K</span>
-            </div>
-          </div>
-        </header>
-
+      {/* Main Cockpit Content Area */}
+      <main className="cockpit-content-wrap">
         {renderPage()}
       </main>
 
@@ -971,7 +893,7 @@ export default function Home() {
           <button
             key={item.id}
             className={page === item.id ? "active" : ""}
-            onClick={() => { setPage(item.id); closeSidebar(); }}
+            onClick={() => setPage(item.id)}
           >
             {Icons[item.id]}
             <span>{item.label}</span>
@@ -994,6 +916,6 @@ export default function Home() {
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }

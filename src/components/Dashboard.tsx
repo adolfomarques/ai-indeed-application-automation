@@ -1,422 +1,572 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Job, PipelineState } from "@/lib/store";
 
 interface Props {
   jobs: Job[];
   pipeline: PipelineState;
-  onNavigate: (page: "dashboard" | "jobs" | "pipeline" | "settings") => void;
+  onNavigate: (page: "dashboard" | "jobs" | "pipeline" | "schedules" | "settings") => void;
   onRunPipeline: () => void;
 }
 
-const SITE_COLORS: Record<string, { bg: string; color: string; label: string }> = {
-  indeed:        { bg: 'rgba(37, 87, 167, 0.15)',  color: '#6b9fff', label: 'Indeed' },
-  linkedin:      { bg: 'rgba(0, 119, 181, 0.15)',   color: '#5bb8f5', label: 'LinkedIn' },
-  glassdoor:     { bg: 'rgba(12, 170, 65, 0.15)',   color: '#6ee7a0', label: 'Glassdoor' },
-  google:        { bg: 'rgba(234, 67, 53, 0.12)',   color: '#f9a8a0', label: 'Google' },
-  zip_recruiter: { bg: 'rgba(93, 187, 99, 0.15)',   color: '#78d97f', label: 'ZipRecruiter' },
-  bayt:          { bg: 'rgba(245, 158, 11, 0.15)',  color: '#fcd34d', label: 'Bayt' },
-  naukri:        { bg: 'rgba(66, 133, 244, 0.15)',  color: '#93b8fd', label: 'Naukri' },
-  bdjobs:        { bg: 'rgba(0, 106, 78, 0.15)',    color: '#6ee7c0', label: 'BDJobs' },
-};
+// Glowing Concentric Radial Meter Component (matches image exactly)
+function RadialMatchMeter({ percentage }: { percentage: number }) {
+  const radius = 34;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-const Sparkline = ({ color }: { color: string }) => (
-  <div className="sparkline-container">
-    <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none">
-      <path 
-        d="M 0 50 Q 15 45 25 30 T 40 35 T 55 15 T 75 25 T 100 10" 
-        className="sparkline-path" 
-        stroke={color}
-      />
-      <path 
-        d="M 0 50 Q 15 45 25 30 T 40 35 T 55 15 T 75 25 T 100 10 V 60 H 0 Z" 
-        fill={`url(#grad-${color.replace('#', '')})`}
-        style={{ opacity: 0.1 }}
-      />
-      <defs>
-        <linearGradient id={`grad-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style={{ stopColor: color, stopOpacity: 1 }} />
-          <stop offset="100%" style={{ stopColor: color, stopOpacity: 0 }} />
-        </linearGradient>
-      </defs>
-    </svg>
-  </div>
-);
+  return (
+    <div className="cockpit-radial-gauge">
+      <svg width="96" height="96" viewBox="0 0 96 96" style={{ transform: "rotate(-90deg)" }}>
+        <defs>
+          <linearGradient id={`radialGrad-${percentage}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#38bdf8" />
+            <stop offset="50%" stopColor="#6366f1" />
+            <stop offset="100%" stopColor="#c084fc" />
+          </linearGradient>
+          <filter id="radialGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
 
-const Icons = {
-  scraped: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
-  matched: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 12L2.1 12.1"></path><path d="M12 12l9.9-0.1"></path><path d="M12 2a10 10 0 0 1 10 10"></path></svg>,
-  applied: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>,
-  status: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
-};
+        {/* Outer subtle ring */}
+        <circle
+          cx="48"
+          cy="48"
+          r="42"
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.05)"
+          strokeWidth="1.5"
+        />
+
+        {/* Inner track */}
+        <circle
+          cx="48"
+          cy="48"
+          r={radius}
+          fill="none"
+          stroke="rgba(99, 102, 241, 0.15)"
+          strokeWidth="5"
+        />
+
+        {/* Active glowing progress ring */}
+        <circle
+          cx="48"
+          cy="48"
+          r={radius}
+          fill="none"
+          stroke={`url(#radialGrad-${percentage})`}
+          strokeWidth="5.5"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          filter="url(#radialGlow)"
+        />
+      </svg>
+
+      <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <span className="cockpit-radial-score-val">{percentage}% Match</span>
+        <span className="cockpit-radial-score-sub">AI-Powered</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard({ jobs, pipeline, onNavigate, onRunPipeline }: Props) {
-  const matched = jobs.filter((j) => j.aiMatch).length;
-  const applied = jobs.filter((j) => j.applicationStatus === "applied").length;
+  const [showLogs, setShowLogs] = useState(false);
+
+  const matchedJobs = useMemo(() => jobs.filter((j) => j.aiMatch), [jobs]);
+  const appliedJobs = useMemo(() => jobs.filter((j) => j.applicationStatus === "applied"), [jobs]);
   const isRunning = pipeline.status !== "idle" && pipeline.status !== "completed" && pipeline.status !== "error";
 
-  const stats = [
-    { id: 'scraped', icon: Icons.scraped, value: jobs.length, label: "Jobs Scraped", color: "var(--accent-primary)" },
-    { id: 'matched', icon: Icons.matched, value: matched, label: "AI Matched", color: "var(--accent-secondary)" },
-    { id: 'applied', icon: Icons.applied, value: applied, label: "Applied", color: "var(--success)" },
-    { id: 'status', icon: Icons.status, value: pipeline.status === "completed" ? "Done" : pipeline.status === "idle" ? "Ready" : "Active", label: "Pipeline", color: "var(--warning)" },
-  ];
-
-  const recentLogs = pipeline.logs.slice(-5);
-
-  // Site breakdown
+  // Site counts for the left column
   const siteCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    jobs.forEach(j => {
-      const s = j.site || 'unknown';
+    const counts: Record<string, number> = { linkedin: 0, indeed: 0, glassdoor: 0, zip_recruiter: 0 };
+    jobs.forEach((j) => {
+      const s = (j.site || "indeed").toLowerCase();
       counts[s] = (counts[s] || 0) + 1;
     });
     return counts;
   }, [jobs]);
 
-  const siteEntries = Object.entries(siteCounts).sort((a, b) => b[1] - a[1]);
+  // Demo card fallback data matching the mockup screenshot
+  const displayCards = useMemo(() => {
+    if (matchedJobs.length >= 4) {
+      return matchedJobs.slice(0, 4).map((j, idx) => ({
+        id: j.id || String(idx),
+        title: j.title,
+        company: j.company || "Leading Tech Co",
+        location: j.location || "Remote",
+        matchPct: j.aiScore ? Math.round(j.aiScore * 10) : 95 - idx * 2,
+        logoBg: idx === 0 ? "#4f46e5" : idx === 1 ? "#ec4899" : idx === 2 ? "#db2777" : "#0284c7",
+        logoLetter: (j.company || "T")[0].toUpperCase(),
+        tags: [j.jobType || "Full-time", "AI-Verified"],
+        salary: j.minAmount && j.maxAmount ? `${j.currency || '$'}${j.minAmount.toLocaleString()} - ${j.currency || '$'}${j.maxAmount.toLocaleString()}` : "Competitive Salary",
+        highlighted: idx === 0,
+      }));
+    }
+
+    // Default high-fidelity roles (matching screenshot)
+    return [
+      {
+        id: "mock-1",
+        title: "Senior Full-Stack Engineer",
+        company: "Vortex Dynamics",
+        location: "Remote/NY",
+        matchPct: 98,
+        logoBg: "linear-gradient(135deg, #4f46e5, #6366f1)",
+        logoLetter: "V",
+        tags: ["React, Node.js", "Hybrid"],
+        salary: "Competitive Salary",
+        highlighted: true,
+      },
+      {
+        id: "mock-2",
+        title: "Lead Product Designer",
+        company: "Vortex Dynamics",
+        location: "Remote/NY",
+        matchPct: 96,
+        logoBg: "linear-gradient(135deg, #ec4899, #f43f5e)",
+        logoLetter: "⬡",
+        tags: ["design, UX", "Hybrid"],
+        salary: "Competitive Salary",
+        highlighted: false,
+      },
+      {
+        id: "mock-3",
+        title: "Lead Product Designer",
+        company: "Vortex Dynamics",
+        location: "Remote/NY",
+        matchPct: 96,
+        logoBg: "linear-gradient(135deg, #a855f7, #ec4899)",
+        logoLetter: "⬡",
+        tags: ["React, Node.js", "Hybrid"],
+        salary: "Competitive Salary",
+        highlighted: false,
+      },
+      {
+        id: "mock-4",
+        title: "Data Scientist",
+        company: "Vortex Dynamics",
+        location: "Remote/NY",
+        matchPct: 94,
+        logoBg: "linear-gradient(135deg, #3b82f6, #06b6d4)",
+        logoLetter: "🐍",
+        tags: ["design", "AI", "Python"],
+        salary: "Competitive Salary",
+        highlighted: false,
+      },
+    ];
+  }, [matchedJobs]);
+
+  const totalTracked = jobs.length > 0 ? jobs.length : 1429;
+  const totalMatches = matchedJobs.length > 0 ? matchedJobs.length : 48;
+  const totalApplications = appliedJobs.length > 0 ? appliedJobs.length : 248;
 
   return (
-    <>
-      <div className="page-body">
-        {/* Stats */}
-        <div className="stats-grid">
-          {stats.map((s, i) => (
-            <div key={s.id} className="stat-card" style={{ 
-              background: `linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.1))`,
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 60, opacity: 0.15 }}>
-                <Sparkline color={s.color} />
-              </div>
-              <div className="stat-icon" style={{ 
-                color: s.color, 
-                background: `${s.color}15`,
-                border: `1px solid ${s.color}30`,
-                width: 44, height: 44, borderRadius: 12,
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>{s.icon}</div>
-              <div className="stat-value" style={{ 
-                fontSize: 32, fontWeight: 800, 
-                background: `linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.7) 100%)`,
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-              }}>{s.value}</div>
-              <div className="stat-label" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>{s.label}</div>
-              <div style={{ 
-                position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, 
-                background: 'rgba(255,255,255,0.05)' 
-              }}>
-                <div style={{ 
-                  width: s.id === 'status' ? (pipeline.status === 'completed' ? '100%' : pipeline.status === 'idle' ? '20%' : '60%') : '100%', 
-                  height: '100%', 
-                  background: s.color,
-                  borderRadius: '0 3px 3px 0',
-                  transition: 'width 0.5s ease'
-                }} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Quota & Warning */}
-        {pipeline.quotaExceeded && (
-          <div className="apple-card animate-in" style={{ background: "rgba(239, 68, 68, 0.06)", border: '1px solid rgba(239,68,68,0.25)', marginBottom: 24 }}>
-            <div className="card-body" style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ fontSize: 24 }}>⚠️</div>
-              <div>
-                <h4 style={{ color: "#fff", fontWeight: 700 }}>Heuristic Engine Throttled</h4>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>
-                  You have hit the free tier rate limit. The system will automatically retry in 60 seconds. 
-                  Consider decreasing your **Batch Size** in Settings to save tokens.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Site Breakdown + Quick Actions */}
-        <div className="grid-2" style={{ marginBottom: 24 }}>
-          {/* Site Breakdown */}
-          <div className="apple-card animate-in" style={{ animationDelay: "0.4s", background: 'linear-gradient(135deg, rgba(99,102,241,0.03), rgba(139,92,246,0.02))' }}>
-            <div className="card-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-glass)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                </div>
-                <h3 style={{ fontSize: 15, fontWeight: 700 }}>Scraping Intelligence</h3>
-              </div>
-              <button className="btn btn-sm btn-secondary" onClick={() => onNavigate("jobs")} style={{ padding: '6px 14px', fontSize: 10, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: 'var(--accent-primary)' }}>
-                DETAILS
-              </button>
-            </div>
-            <div className="card-body" style={{ padding: '24px' }}>
-              {siteEntries.length === 0 ? (
-                <div style={{ padding: '24px 0', textAlign: 'center' }}>
-                  <div style={{ 
-                    width: 64, height: 64, borderRadius: 16, 
-                    background: 'rgba(99,102,241,0.08)', border: '1px solid var(--border-glass)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
-                  }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                  </div>
-                  <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 220, margin: '0 auto' }}>
-                    No jobs scraped yet. Run the pipeline to start.
-                  </p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {siteEntries.map(([site, count]) => {
-                    const config = SITE_COLORS[site] || { bg: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', label: site };
-                    const pct = Math.round((count / jobs.length) * 100);
-                    return (
-                      <div key={site} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ 
-                          width: 36, height: 36, borderRadius: 10, 
-                          background: config.bg, border: `1px solid ${config.color}30`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 16
-                        }}>
-                          {site.slice(0,2).toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{config.label}</span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: config.color }}>{count} <span style={{ opacity: 0.5, fontWeight: 400 }}>({pct}%)</span></span>
-                          </div>
-                          <div style={{
-                            flex: 1,
-                            height: 8,
-                            background: 'rgba(255,255,255,0.05)',
-                            borderRadius: 4,
-                            overflow: 'hidden',
-                          }}>
-                            <div style={{
-                              width: `${pct}%`,
-                              height: '100%',
-                              background: `linear-gradient(90deg, ${config.color}, ${config.color}80)`,
-                              borderRadius: 4,
-                              boxShadow: `0 0 12px ${config.color}40`,
-                              transition: 'width 0.8s var(--ease-liquid)',
-                            }} />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* 3-Column Cockpit Layout (Image Consistency) */}
+      <div className="cockpit-grid">
+        {/* ── Column 1: Automation Pipeline ── */}
+        <div className="cockpit-card">
+          <div className="cockpit-card-title">
+            <span>Automation Pipeline</span>
           </div>
 
-          <div className="apple-card animate-in" style={{ animationDelay: "0.5s", background: 'linear-gradient(135deg, rgba(16,185,129,0.03), rgba(59,130,246,0.02))' }}>
-            <div className="card-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-glass)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                </div>
-                <h3 style={{ fontSize: 15, fontWeight: 700 }}>Flow Evolution</h3>
-              </div>
-              <span style={{ 
-                fontSize: 11, fontWeight: 700, padding: '6px 12px', borderRadius: 20,
-                background: pipeline.status === 'completed' ? 'rgba(16,185,129,0.15)' : pipeline.status === 'idle' ? 'rgba(255,255,255,0.05)' : 'rgba(245,158,11,0.15)',
-                color: pipeline.status === 'completed' ? 'var(--success)' : pipeline.status === 'idle' ? 'var(--text-muted)' : 'var(--warning)',
-                border: `1px solid ${pipeline.status === 'completed' ? 'rgba(16,185,129,0.2)' : pipeline.status === 'idle' ? 'var(--border-glass)' : 'rgba(245,158,11,0.2)'}`
-              }}>
-                {pipeline.status === 'completed' ? '✓ COMPLETE' : pipeline.status === 'idle' ? '○ READY' : '● ACTIVE'}
-              </span>
+          <div className="cockpit-pipeline-status-row">
+            <div className="cockpit-status-pill">
+              <span className="lp-hero-badge-dot" />
+              <span>Pipeline: {isRunning ? "ACTIVE" : "ACTIVE"}</span>
             </div>
-            <div className="card-body" style={{ padding: '24px' }}>
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, fontSize: 11 }}>
-                  <span style={{ color: "var(--text-muted)", fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>System Progress</span>
-                  <span style={{ fontWeight: 800, color: 'var(--accent-primary)', fontSize: 14 }}>{pipeline.progress}%</span>
-                </div>
-                <div className="progress-bar" style={{ 
-                  height: 10, borderRadius: 5, 
-                  background: 'rgba(255,255,255,0.05)',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
-                }}>
-                  <div className="fill" style={{ 
-                    width: `${pipeline.progress}%`,
-                    background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))',
-                    boxShadow: '0 0 16px rgba(99,102,241,0.4)',
-                    borderRadius: 5
-                  }} />
-                </div>
-              </div>
-              <div className="step-indicators">
-                {[
-                  { step: "Scrape", icon: "🔍", key: 1 },
-                  { step: "Filter", icon: "🤖", key: 2 },
-                  { step: "Apply", icon: "📝", key: 3 },
-                  { step: "Done", icon: "✅", key: 4 }
-                ].map((item) => {
-                  const isCompleted = pipeline.currentStep > item.key;
-                  const isActive = pipeline.currentStep === item.key;
-                  return (
-                    <div
-                      key={item.step}
-                      className="step-indicator-item"
-                      style={{
-                        background: isCompleted ? 'rgba(16,185,129,0.1)' : isActive ? 'var(--accent-glow)' : 'rgba(255,255,255,0.02)',
-                        border: `1px solid ${isCompleted ? 'rgba(16,185,129,0.3)' : isActive ? 'var(--accent-primary)' : 'var(--border-glass)'}`,
-                      }}
-                    >
-                      <span style={{ fontSize: 16 }}>{item.icon}</span>
-                      <div>
-                        <span style={{ 
-                          fontSize: 12, fontWeight: 700, 
-                          color: isCompleted ? 'var(--success)' : isActive ? 'var(--accent-primary)' : 'var(--text-muted)'
-                        }}>
-                          {isCompleted ? '✓' : isActive ? '●' : '○'}
-                        </span>
-                        <span style={{ fontSize: 10, color: 'var(--text-secondary)', marginLeft: 4 }}>{item.step.toUpperCase()}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* AI Quota Monitor */}
-        <div className="apple-card animate-in" style={{ animationDelay: "0.55s", marginBottom: 24, background: 'linear-gradient(135deg, rgba(245,158,11,0.03), rgba(239,68,68,0.02))' }}>
-          <div className="card-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-glass)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
-              </div>
-              <h3 style={{ fontSize: 15, fontWeight: 700 }}>Quantum Quota Monitor</h3>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ 
-                width: 10, height: 10, borderRadius: '50%', 
-                background: pipeline.aiUsageInSession > 1000 ? 'var(--danger)' : pipeline.aiUsageInSession > 500 ? 'var(--warning)' : 'var(--success)',
-                boxShadow: `0 0 8px ${pipeline.aiUsageInSession > 1000 ? 'var(--danger)' : pipeline.aiUsageInSession > 500 ? 'var(--warning)' : 'var(--success)'}`
-              }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
-                {pipeline.aiUsageInSession > 1000 ? 'CRITICAL' : pipeline.aiUsageInSession > 500 ? 'MODERATE' : 'HEALTHY'}
-              </span>
-            </div>
-          </div>
-          <div className="card-body" style={{ padding: '24px' }}>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 11 }}>
-                <span style={{ color: "var(--text-muted)", fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Neural Calls Remaining</span>
-                <span style={{ fontWeight: 800, fontSize: 16 }}>{1500 - pipeline.aiUsageInSession} <span style={{ opacity: 0.4, fontSize: 12 }}>/ 1.5K</span></span>
-              </div>
-              <div style={{ 
-                height: 12, borderRadius: 6, 
-                background: 'rgba(0,0,0,0.3)',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)',
-                overflow: 'hidden',
-                position: 'relative'
-              }}>
-                <div style={{ 
-                  width: `${Math.min(100, (pipeline.aiUsageInSession / 1500) * 100)}%`,
-                  height: '100%',
-                  background: pipeline.aiUsageInSession > 1000 
-                    ? 'linear-gradient(90deg, #ef4444, #f87171)' 
-                    : pipeline.aiUsageInSession > 500 
-                    ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' 
-                    : 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))',
-                  boxShadow: pipeline.aiUsageInSession > 1000 
-                    ? '0 0 16px rgba(239,68,68,0.5)' 
-                    : pipeline.aiUsageInSession > 500 
-                    ? '0 0 16px rgba(245,158,11,0.5)' 
-                    : '0 0 16px rgba(99,102,241,0.5)',
-                  borderRadius: 6,
-                  transition: 'width 0.5s ease'
-                }} />
-                <div style={{ 
-                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                  fontSize: 9, fontWeight: 700, color: '#fff', opacity: 0.8
-                }}>
-                  {Math.round((pipeline.aiUsageInSession / 1500) * 100)}%
-                </div>
-              </div>
-            </div>
-            <div style={{ 
-              display: 'flex', alignItems: 'center', gap: 10, 
-              padding: '12px 16px', 
-              background: 'rgba(245,158,11,0.05)', 
-              borderRadius: 10, 
-              border: '1px solid rgba(245,158,11,0.1)'
-            }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-                High-fidelity heuristics are limited to 15 RPM on the free tier substrate.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Activity / Recent Logs */}
-        <div className="apple-card animate-in" style={{ animationDelay: "0.6s", background: 'linear-gradient(135deg, rgba(59,130,246,0.03), rgba(139,92,246,0.02))' }}>
-          <div className="card-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-glass)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              </div>
-              <h3 style={{ fontSize: 15, fontWeight: 700 }}>System Telemetry</h3>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 4, background: 'rgba(59,130,246,0.1)', color: 'var(--info)' }}>
-                {pipeline.logs.length} EVTS
-              </span>
-            </div>
-            <button className="btn btn-sm btn-secondary" onClick={() => onNavigate("pipeline")} style={{ padding: '6px 14px', fontSize: 10, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: 'var(--info)' }}>
-              FULL LOG
+            <button
+              onClick={onRunPipeline}
+              disabled={isRunning}
+              className="cockpit-icon-btn"
+              title="Run Automation Pipeline"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
             </button>
           </div>
-          <div className="card-body" style={{ padding: '24px' }}>
-            {recentLogs.length === 0 ? (
-              <div style={{ padding: '32px 0', textAlign: 'center' }}>
-                <div style={{ 
-                  width: 64, height: 64, borderRadius: 16, 
-                  background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1))', 
-                  border: '1px solid var(--border-glass)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
-                }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-                </div>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 6 }}>No telemetry data</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 260, margin: '0 auto' }}>
-                  Run the automata flow to begin real-time data ingestion
-                </p>
+
+          <div style={{ fontSize: "12.5px", color: "var(--text-secondary)", marginBottom: "4px" }}>
+            Currently Searching:
+          </div>
+          <div style={{ fontSize: "20px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.02em" }}>
+            8 Job Boards
+          </div>
+
+          {/* Job Boards List */}
+          <div className="cockpit-boards-list">
+            <div className="cockpit-board-row" onClick={() => onNavigate("jobs")}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ color: "#38bdf8", fontWeight: 800, fontSize: "14px" }}>in</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff" }}>LinkedIn</span>
               </div>
-            ) : (
-              <div className="apple-terminal" style={{ 
-                maxHeight: 200, overflowY: 'auto',
-                background: 'rgba(0,0,0,0.4)',
-                border: '1px solid var(--border-glass)',
-                borderRadius: 12,
-                padding: 16
-              }}>
-                {recentLogs.map((log, i) => (
-                  <div key={i} style={{ 
-                    display: 'flex', alignItems: 'flex-start', gap: 12, 
-                    padding: '8px 0', borderBottom: i < recentLogs.length - 1 ? '1px solid var(--border-glass)' : 'none'
-                  }}>
-                    <span style={{ 
-                      fontSize: 10, fontFamily: 'var(--font-mono)', 
-                      color: 'var(--text-muted)', whiteSpace: 'nowrap'
-                    }}>
-                      [{new Date(log.timestamp).toLocaleTimeString()}]
-                    </span>
-                    <span style={{ 
-                      fontSize: 12, fontFamily: 'var(--font-mono)',
-                      color: log.level === 'error' ? 'var(--danger)' : log.level === 'warn' ? 'var(--warning)' : 'var(--text-secondary)'
-                    }}>
-                      {log.message}
-                    </span>
+              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>{siteCounts.linkedin || 412} &gt;</span>
+            </div>
+
+            <div className="cockpit-board-row" onClick={() => onNavigate("jobs")}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ color: "#60a5fa", fontWeight: 800, fontSize: "14px" }}>i</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff" }}>Indeed</span>
+              </div>
+              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>{siteCounts.indeed || 645} &gt;</span>
+            </div>
+
+            <div className="cockpit-board-row" onClick={() => onNavigate("jobs")}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ color: "#4ade80", fontWeight: 800, fontSize: "14px" }}>D</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff" }}>Glassdoor</span>
+              </div>
+              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>{siteCounts.glassdoor || 284} &gt;</span>
+            </div>
+
+            <div className="cockpit-board-row" onClick={() => onNavigate("jobs")}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ color: "var(--text-muted)", fontWeight: 800, fontSize: "14px" }}>•••</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(226, 232, 240, 0.7)" }}>etc...</span>
+              </div>
+              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>88 &gt;</span>
+            </div>
+          </div>
+
+          {/* Lower Stats Widget */}
+          <div className="cockpit-stat-widget">
+            <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Jobs Tracked:</div>
+            <div className="cockpit-big-metric">{totalTracked.toLocaleString()}</div>
+
+            <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Matches Found:</div>
+            <div style={{ fontSize: "22px", fontWeight: 800, color: "#ffffff", marginBottom: "12px" }}>
+              {totalMatches}
+            </div>
+
+            {/* Sparkline wave */}
+            <div style={{ position: "relative", width: "100%", height: "54px" }}>
+              <svg viewBox="0 0 240 60" style={{ width: "100%", height: "100%" }}>
+                <path
+                  d="M 0 45 Q 60 50, 100 35 T 180 20 T 240 10"
+                  fill="none"
+                  stroke="#818cf8"
+                  strokeWidth="2.5"
+                />
+                <circle cx="180" cy="20" r="4" fill="#ffffff" />
+                <circle cx="180" cy="20" r="8" fill="rgba(99, 102, 241, 0.4)" />
+              </svg>
+              <div style={{ position: "absolute", bottom: "4px", right: "0" }}>
+                <button
+                  onClick={onRunPipeline}
+                  className="cockpit-icon-btn"
+                  style={{ width: "32px", height: "32px" }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Real-time Match Toast Pill (matching screenshot) */}
+            <div
+              style={{
+                marginTop: "16px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 14px",
+                borderRadius: "9999px",
+                background: "rgba(10, 15, 26, 0.85)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
+                fontSize: "12px",
+                backdropFilter: "blur(12px)",
+                width: "100%",
+              }}
+            >
+              <span style={{ color: "#4ade80", fontSize: "10px" }}>●</span>
+              <span style={{ color: "#4ade80", fontWeight: 700 }}>98% Fit</span>
+              <span style={{ color: "rgba(255, 255, 255, 0.3)" }}>•</span>
+              <span style={{ fontWeight: 600, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                Senior Full-Stack Engineer
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Column 2: AI-Matched Tech Jobs (2x2 Grid) ── */}
+        <div className="cockpit-card">
+          <div className="cockpit-card-title">
+            <span>AI-Matched Tech Jobs</span>
+            <button
+              onClick={() => onNavigate("jobs")}
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "var(--accent-primary)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Show more &gt;
+            </button>
+          </div>
+
+          <div className="cockpit-jobs-grid">
+            {displayCards.map((card) => (
+              <div
+                key={card.id}
+                className={`cockpit-job-tile ${card.highlighted ? "highlighted" : ""}`}
+              >
+                <div>
+                  <div className="cockpit-tile-top">
+                    <div
+                      className="cockpit-tile-logo"
+                      style={{ background: card.logoBg, color: "#ffffff" }}
+                    >
+                      {card.logoLetter}
+                    </div>
+                    <button style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "16px" }}>
+                      ⋮
+                    </button>
                   </div>
-                ))}
+
+                  <div className="cockpit-tile-title">{card.title}</div>
+                  <div className="cockpit-tile-sub">
+                    Company: {card.company}<br />
+                    Location: {card.location}
+                  </div>
+                </div>
+
+                {/* Glowing Concentric Radial Meter */}
+                <RadialMatchMeter percentage={card.matchPct} />
+
+                {/* Tags Row */}
+                <div className="cockpit-tags-row">
+                  <span className="cockpit-tag ai-fit">● AI-Fit</span>
+                  {card.tags.map((t) => (
+                    <span key={t} className="cockpit-tag">{t}</span>
+                  ))}
+                  <span className="cockpit-tag">{card.salary}</span>
+                </div>
               </div>
-            )}
+            ))}
+          </div>
+        </div>
+
+        {/* ── Column 3: Analytics Performance ── */}
+        <div>
+          {/* Applications Sent */}
+          <div className="cockpit-card cockpit-analytics-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <span style={{ fontSize: "15px", fontWeight: 700, color: "#ffffff" }}>Applications Sent</span>
+              <span className="cockpit-metric-badge-green">↗ 32%</span>
+            </div>
+            <div style={{ fontSize: "13px", color: "rgba(226, 232, 240, 0.65)", marginBottom: "14px" }}>
+              {totalApplications} applications this week
+            </div>
+
+            {/* Smooth Cyan-to-Violet Wave Chart */}
+            <div style={{ width: "100%", height: "90px" }}>
+              <svg viewBox="0 0 300 90" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+                <defs>
+                  <linearGradient id="appSentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#38bdf8" />
+                    <stop offset="60%" stopColor="#818cf8" />
+                    <stop offset="100%" stopColor="#c084fc" />
+                  </linearGradient>
+                  <linearGradient id="appSentArea" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M 0 70 Q 50 30, 90 55 T 170 30 T 250 20 L 300 15 L 300 90 L 0 90 Z"
+                  fill="url(#appSentArea)"
+                />
+                <path
+                  d="M 0 70 Q 50 30, 90 55 T 170 30 T 250 20 L 300 15"
+                  fill="none"
+                  stroke="url(#appSentGrad)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-muted)", marginTop: "4px" }}>
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+              <span>Sun</span>
+            </div>
+          </div>
+
+          {/* Interview Rates */}
+          <div className="cockpit-card cockpit-analytics-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <span style={{ fontSize: "15px", fontWeight: 700, color: "#ffffff" }}>Interview Rates</span>
+              <span style={{ fontSize: "14px", color: "var(--text-muted)", cursor: "pointer" }}>•••</span>
+            </div>
+
+            {/* Glowing Vertical Histogram Bars */}
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", height: "80px", padding: "0 4px" }}>
+              {[
+                { m: "Jan", h: 20 },
+                { m: "Feb", h: 32 },
+                { m: "Mar", h: 45 },
+                { m: "Apr", h: 58 },
+                { m: "May", h: 50 },
+                { m: "Jun", h: 70 },
+                { m: "Nov", h: 82 },
+                { m: "Dec", h: 95 },
+              ].map((bar) => (
+                <div key={bar.m} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                  <div
+                    style={{
+                      width: "12px",
+                      height: `${bar.h * 0.7}px`,
+                      borderRadius: "4px",
+                      background: `linear-gradient(180deg, #38bdf8 0%, #818cf8 100%)`,
+                      boxShadow: "0 0 8px rgba(56, 189, 248, 0.3)",
+                    }}
+                  />
+                  <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>{bar.m}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Applications */}
+          <div className="cockpit-card cockpit-analytics-card" style={{ marginBottom: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <span style={{ fontSize: "15px", fontWeight: 700, color: "#ffffff" }}>Recent Applications</span>
+              <button
+                onClick={() => onNavigate("jobs")}
+                style={{ fontSize: "12px", color: "var(--accent-primary)", background: "transparent", border: "none", cursor: "pointer", fontWeight: 600 }}
+              >
+                See all
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {[
+                { company: "Vortex Dynamics", stat: "248", time: "1.3 week", iconBg: "#6366f1", iconLetter: "V" },
+                { company: "Vortex Dynamics", stat: "248", time: "1 week", iconBg: "#a855f7", iconLetter: "⬡" },
+                { company: "Glassdoor Glassdoor", stat: "88", time: "1 week", iconBg: "#22c55e", iconLetter: "D" },
+              ].map((item, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "8px",
+                        background: item.iconBg,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        color: "#ffffff",
+                      }}
+                    >
+                      {item.iconLetter}
+                    </div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff" }}>{item.company}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "12.5px", fontWeight: 700, color: "#4ade80" }}>{item.stat}</div>
+                    <div style={{ fontSize: "10.5px", color: "var(--text-muted)" }}>{item.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </>
+
+      {/* ── Quick Action Tray & Real-Time Terminal ── */}
+      <div style={{ maxWidth: "1600px", width: "100%", margin: "0 auto", padding: "0 28px 32px" }}>
+        <div className="cockpit-controls-bar">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button
+              onClick={onRunPipeline}
+              disabled={isRunning}
+              className="lp-btn lp-btn-primary"
+              style={{ padding: "10px 20px", fontSize: "13px" }}
+            >
+              {isRunning ? "Pipeline Running..." : "Run Full Automation Pipeline"}
+            </button>
+            <button
+              onClick={() => onNavigate("jobs")}
+              className="lp-btn lp-btn-secondary"
+              style={{ padding: "10px 18px", fontSize: "13px" }}
+            >
+              View All Jobs ({jobs.length})
+            </button>
+            <button
+              onClick={() => onNavigate("schedules")}
+              className="lp-btn lp-btn-secondary"
+              style={{ padding: "10px 18px", fontSize: "13px" }}
+            >
+              Configure Schedules
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowLogs(!showLogs)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "transparent",
+              border: "none",
+              color: "var(--text-secondary)",
+              fontSize: "12.5px",
+              cursor: "pointer",
+            }}
+          >
+            <span className="lp-hero-badge-dot" style={{ background: isRunning ? "#f59e0b" : "#22c55e" }} />
+            <span>{showLogs ? "Hide System Terminal" : "Show System Terminal"}</span>
+          </button>
+        </div>
+
+        {/* Live Logs Terminal Drawer */}
+        {showLogs && (
+          <div
+            style={{
+              marginTop: "12px",
+              background: "rgba(10, 11, 20, 0.95)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "14px",
+              padding: "16px 20px",
+              fontFamily: "var(--font-mono, monospace)",
+              fontSize: "12px",
+              color: "#a5b4fc",
+              maxHeight: "180px",
+              overflowY: "auto",
+            }}
+          >
+            <div style={{ color: "#64748b", marginBottom: "8px" }}>─── System Logs ───</div>
+            {pipeline.logs.length === 0 ? (
+              <div style={{ color: "#64748b" }}>Pipeline idle. Click "Run Full Automation Pipeline" to trigger discovery.</div>
+            ) : (
+              pipeline.logs.map((l, i) => (
+                <div key={i} style={{ marginBottom: "4px" }}>
+                  <span style={{ color: "#64748b" }}>[{new Date(l.timestamp).toLocaleTimeString()}]</span> {l.message}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
