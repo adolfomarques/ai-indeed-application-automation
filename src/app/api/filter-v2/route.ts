@@ -105,7 +105,7 @@ IMPORTANT: Respond ONLY with a valid JSON object:
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "llama-3.1-8b-instant", 
+              model: "openai/gpt-oss-20b", 
               messages: [{ role: "user", content: prompt }],
               temperature: 0.1,
               response_format: { type: "json_object" }

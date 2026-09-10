@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "apply": "tsx src/api/cron/apply.ts",
-    "apply:test": "tsx src/api/cron/test-run.ts"
+    "apply:test": "tsx src/api/cron/test-run.ts",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy:tag": "bash scripts/deploy.sh --tag",
+    "deploy:prod": "bash scripts/deploy.sh --prod",
+    "deploy:link": "npx vercel link"
   },
   "dependencies": {
     "@google/genai": "^1.37.0",
