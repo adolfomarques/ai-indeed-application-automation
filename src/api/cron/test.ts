@@ -17,7 +17,8 @@ async function main() {
     const result = await applyToJobs(jobDataJson, true);
 
     console.log('\n📝 Task Summary:');
-    console.log(`   Task ID: ${result.taskId}`);
+    // @ts-ignore
+    console.log(`   Task IDs: ${result.taskIds?.join(', ')}`);
     console.log(`   Watch live: ${result.viewUrl}`);
     console.log(`   Total jobs: ${result.jobCount}`);
 }
