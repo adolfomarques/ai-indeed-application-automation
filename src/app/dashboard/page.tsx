@@ -711,7 +711,17 @@ export default function Home() {
           {(() => {
             switch (page) {
               case "dashboard":
-                return <Dashboard jobs={jobs} pipeline={pipeline} onNavigate={setPage} onRunPipeline={runFullPipeline} />;
+                return (
+                  <Dashboard
+                    jobs={jobs}
+                    pipeline={pipeline}
+                    settings={settings}
+                    onNavigate={setPage}
+                    onRunPipeline={runFullPipeline}
+                    onRunScrape={runScrape}
+                    onRunFilter={() => runFilter(jobs)}
+                  />
+                );
               case "jobs":
                 return <JobsPage jobs={jobs} />;
               case "pipeline":
@@ -821,8 +831,8 @@ export default function Home() {
             <span style={{ color: "#818cf8" }}>⚡</span>
             <span>
               {jobs.length > 0
-                ? `${jobs.length.toLocaleString()} Jobs Indexed in 4.2s`
-                : "1,429 Jobs Indexed in 4.2s"}
+                ? `${jobs.length.toLocaleString()} Job${jobs.length > 1 ? "s" : ""} Indexed`
+                : "0 Jobs Indexed"}
             </span>
           </div>
 
